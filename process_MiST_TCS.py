@@ -4,18 +4,23 @@ import urllib.request, urllib.parse, urllib.error
 import json
 import collections
 import os.path
+import time
 
 USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in genomes.\n\n" + \
 	" \n\n" + \
 	"python 	" + sys.argv[0] + '''
 	-h || --help               - help
 	-i || --ifile              - input file
-	-o || --ofile              - output file
+	-f || --ffile              - first output file
+	-s || --sfile              - second output file
 '''
 
 GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes"
-SIGNAL_GENES_HK = "/signal-genes?where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
-SIGNAL_GENES_HHK = "/signal-genes?where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+STP_MATRIX = "/stp-matrix"
+SIGNAL_GENES_HK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+#SIGNAL_GENES_HK = "/signal-genes?where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+#SIGNAL_GENES_HHK = "/signal-genes?where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
 
 INPUT_FILE = None
@@ -26,9 +31,9 @@ GENOME_VERSIONS = ""
 TIMEOUT_FILE = "timeout_genomes.txt"
 
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:s:o:p:t:",["help", "ifile=", "ofile="])
+		opts, args = getopt.getopt(argv[1:],"hi:f:s:",["help", "ifile=", "ffile=", "sfile="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -41,50 +46,71 @@ def initialize(argv):
 				sys.exit()
 			elif opt in ("-i", "--ifile"):
 				INPUT_FILE = str(arg).strip()
-			elif opt in ("-o", "--ofile"):
-				OUTPUT_FILE = str(arg).strip()
+			elif opt in ("-f", "--ffile"):
+				OUTPUT_FILE1 = str(arg).strip()
+			elif opt in ("-s", "--sfile"):
+				OUTPUT_FILE2 = str(arg).strip()
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
-
-def initialyzeGenomeList():
-	global GENOME_VERSIONS
+	
 	with open(INPUT_FILE, "r") as inputFile:
 		GENOME_VERSIONS = [record.strip() for record in inputFile]
 
+#The function first retreives stp-matrix and after that signal genes for those components that have target signaling systems
+#This is done, because it is much faster this way
 def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
 	genomeURL = GENOMES_URL + genomeVersion
-	signalGeneList = list()
 	noDataAnymore = False
-	for num in range(1, 101):
-		for iteration in range(0, 10):
-			try:
-				additionaFields = additionaFieldsTemplate.replace("%PAGE%", str(num))
-				constructedUrl = genomeURL + additionaFields
-				result = urllib.request.urlopen(constructedUrl)
-				resultAsJson = json.loads(result.read().decode("utf-8"))
-				if len(resultAsJson) == 0:   #No data anymore from this page on
-					noDataAnymore = True
-					break
-				if "name" in resultAsJson:	#404 NotFoundError
-					break
-			#except ValueError: #504 Gateway timeouts
-			except urllib.error.HTTPError:
-			#except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
-				if iteration == 9:
-					with open (TIMEOUT_FILE, "a") as timeoutFile:
-						timeoutFile.write(genomeVersion + "\n")
-				continue
-			signalGeneList.extend(resultAsJson)
-			break
-		if noDataAnymore:
-			break
+
+	#Get stp-matrix and look at the numnber of components and save those components that have two-component systems.
+	#They will be saved in componentsWithTcp list.
+	componentsWithTcp = list()
+	signalGenesRetriever(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, True, noDataAnymore)
+	
+	#Retrieve signal genes in those components that have two-component systems
+	signalGeneList = list()
+	for componentId in componentsWithTcp:
+		for num in range(1, 101):
+			additionaFields = additionaFieldsTemplate.replace("%COMPONENT_ID%", str(componentId)).replace("%PAGE%", str(num))
+			constructedUrl = genomeURL + additionaFields
+			noDataAnymore = signalGenesRetriever(constructedUrl, signalGeneList, genomeVersion, False, noDataAnymore)
+			if noDataAnymore:
+				break
 	return signalGeneList			
+
+def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymore):
+	for iteration in range (0, 10):
+		try:
+			result = urllib.request.urlopen(url)
+			resultAsJson = json.loads(result.read().decode("utf-8"))
+			if len(resultAsJson) == 0:   #No data anymore from this page on
+				noDataAnymore = True
+				break
+			if "name" in resultAsJson:	#404 NotFoundError
+				break
+		except urllib.error.HTTPError:
+		#except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
+			if iteration == 9:
+				with open (TIMEOUT_FILE, "a") as timeoutFile:
+					timeoutFile.write(genomeVersion + "\n")
+			#sleep 5 seconds if gateway timeout happened		
+			time.sleep(5)
+			continue
+
+		if tcpMatrix and "tcp" in resultAsJson["components"]["counts"]:
+			elementList.extend(resultAsJson)
+		else:
+			elementList.extend(resultAsJson)
+		break
+
+	return noDataAnymore
 
 def processDomains():
 	genomeNumber = 1
 	for genomeVersion in GENOME_VERSIONS:
-		if genomeVersion.strip():
+		genomeVersion = genomeVersion.strip()
+		if genomeVersion:
 			print("Genome Number: " + str(genomeNumber))
 			genomeNumber+=1
 			listOfSignalGeneLists = []
@@ -94,9 +120,9 @@ def processDomains():
 
 			for signalGeneList in listOfSignalGeneLists:
 				for gene in signalGeneList:
-					prepareDomains(gene, genomeVersion.strip(), domainCombinToCount)
+					prepareDomains(gene, genomeVersion, domainCombinToCount)
 			
-			#domainCombinToCount is populated by this step and we can save the result
+			#domainCombinToCount in each genome is populated at the previous step and we can save the result
 			domainCombinToCountList = sorted(list(domainCombinToCount.items()), key=lambda a: a[1], reverse=True)
 			with open(OUTPUT_FILE2, "a") as outputFile:
 				for domainCombinAndCount in domainCombinToCountList:
@@ -106,7 +132,7 @@ def processDomains():
 ##********************** Domains processing block**********************##
 def prepareDomains(gene, genomeVersion, domainCombinToCount):
 	if "Gene" in gene and "Aseq" in gene["Gene"] and "pfam31" in gene["Gene"]["Aseq"]:
-		#Ordering domains according to how they encoded in the gene
+		#Ordering domains according to how they are encoded in the gene
 		domainsSorted = sorted(gene["Gene"]["Aseq"]["pfam31"], key=lambda x: x["ali_from"], reverse=False)
 		if len (domainsSorted) > 0:
 			domainsFiltered = removeOverlapps(domainsSorted)
@@ -163,13 +189,13 @@ def processHoles(domains):
 			checkAndAddHoles(domains, domainsOutput, minDomainLength)
 		#This should not happen. Output the result if this happend:
 		elif domains[-2] == 'HisKA':
-			print ("Smething is not OK")
+			print ("Something is not OK")
 		#This should not happen either. Output the result if this happend:
 		elif domains[-2] == 'HATPase_c':
-			print ("Smething is not OK")
+			print ("Something is not OK")
 		#This should not happen at all:
 		else:
-			print ("Smething is completely wrong")
+			print ("Something is completely wrong")
 	return domainsOutput
 
 def checkAndAddHoles(domains, domainsOutput, minDomainLength):
@@ -243,7 +269,6 @@ def compareEvalues(pfam1, pfam2):
 		
 def main(argv):
 	initialize(argv)
-	initialyzeGenomeList()
 
 main(sys.argv)
 	

@@ -15,7 +15,7 @@ USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in ge
 	-s || --sfile              - second output file
 '''
 
-GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes"
+GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
 STP_MATRIX = "/stp-matrix"
 SIGNAL_GENES_HK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
@@ -29,6 +29,9 @@ OUTPUT_FILE2 = None
 
 GENOME_VERSIONS = ""
 TIMEOUT_FILE = "timeout_genomes.txt"
+
+HIS_KINASE_DIM_DOMAINS = ["HisKA", "HisKA_2", "HisKA_3", "H-kinase_dim", "His_kinase"]
+HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
 
 def initialize(argv):
 	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS
@@ -60,19 +63,22 @@ def initialize(argv):
 #The function first retreives stp-matrix and after that signal genes for those components that have target signaling systems
 #This is done, because it is much faster this way
 def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
+	if additionaFieldsTemplate == SIGNAL_GENES_HK:
+		hkOrhhK = "hk"
+	elif additionaFieldsTemplate == SIGNAL_GENES_HHK:
+		hkOrhhK = "hhk"
 	genomeURL = GENOMES_URL + genomeVersion
 	noDataAnymore = False
 
 	#Get stp-matrix and look at the numnber of components and save those components that have two-component systems.
 	#They will be saved in componentsWithTcp list.
-	componentsWithTcp = list()
-	signalGenesRetriever(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, True, noDataAnymore)
-	
+	componentsWithTcp = list() #componentsWithTcp will be poppulated
+	signalGenesRetriever(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, hkOrhhK, noDataAnymore)
 	#Retrieve signal genes in those components that have two-component systems
 	signalGeneList = list()
-	for componentId in componentsWithTcp:
+	for component in componentsWithTcp:
 		for num in range(1, 101):
-			additionaFields = additionaFieldsTemplate.replace("%COMPONENT_ID%", str(componentId)).replace("%PAGE%", str(num))
+			additionaFields = additionaFieldsTemplate.replace("%COMPONENT_ID%", str(component["id"])).replace("%PAGE%", str(num))
 			constructedUrl = genomeURL + additionaFields
 			noDataAnymore = signalGenesRetriever(constructedUrl, signalGeneList, genomeVersion, False, noDataAnymore)
 			if noDataAnymore:
@@ -98,8 +104,10 @@ def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymo
 			time.sleep(5)
 			continue
 
-		if tcpMatrix and "tcp" in resultAsJson["components"]["counts"]:
-			elementList.extend(resultAsJson)
+		if tcpMatrix and "tcp" in resultAsJson["counts"]:
+			for component in resultAsJson["components"]:
+				if "tcp" in component["counts"] and tcpMatrix in component["counts"]["tcp"]:
+					elementList.append(component)
 		else:
 			elementList.extend(resultAsJson)
 		break
@@ -139,8 +147,7 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 			
 			refseqVersion = gene["Gene"]["version"]
 			geneStableId = gene["Gene"]["stable_id"]
-			proteinLength = int(gene["Gene"]["length"]/3) - 1
-			
+			proteinLength = str(int(gene["Gene"]["length"]/3) - 1)
 			domainsOutput = processHoles(domainsFiltered)
 
 			domainArchitecture = ""
@@ -151,7 +158,7 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 			#{'domain1': 1, 'domain2': 2}
 			domainToCount = collections.defaultdict(int)
 			for domain in domainsOutput:
-				domainToCount[domain]+=1
+				domainToCount[domain["name"]]+=1
 			sortedDomainNames = sorted(domainToCount.keys())
 			domainsFilteredNamesUniqueStr = ",".join(sortedDomainNames)
 			domainsFilteredNamesUniqueCountsStr = ",".join(["{}:{}".format(domain, domainToCount[domain]) for domain in sortedDomainNames])
@@ -172,26 +179,29 @@ def processHoles(domains):
 	minDomainLength = 100
 	minLengthForHisKA = 150
 	domainsOutput = []
-	if domains[-1] == 'HATPase_c':
-		if domains[-2] == 'HisKA':
+	if domains[-1]["name"] in HIS_KINASE_CATAL_DOMAINS:
+		if domains[-2]["name"] in HIS_KINASE_DIM_DOMAINS:
 			checkAndAddHoles(domains, domainsOutput, minDomainLength)
-		elif domains[-2] != 'HisKA':
+		elif domains[-2]["name"] not in HIS_KINASE_DIM_DOMAINS:
 			checkAndAddHoles(domains, domainsOutput, minDomainLength)
-			#process the hole between the penultimate domain and the last domain
-			HisKAspace = domains[-1]["env_from"] - domains[-2]["env_to"]
-			#if the below condition is satisfied then there is an addition doman before HisKA	
-			if HisKAspace >= (minLengthForHisKA + minDomainLength):
-				holeEnd = domains[-2]["env_to"] + (HisKAspace - minLengthForHisKA) 
-				addHoleAndDomain(domainsOutput, domains[-2]["env_to"]+1, holeEnd, domains[-1], True)
-	elif domains[-1] != 'HATPase_c':
+			# #process the hole between the penultimate domain and the last domain
+			# HisKAspace = domains[-1]["env_from"] - domains[-2]["env_to"]
+			# #if the below condition is satisfied then there is an addition doman after HisKA	
+			# if HisKAspace >= (minLengthForHisKA + minDomainLength):
+			# 	holeEnd = domains[-2]["env_to"] + (HisKAspace - minLengthForHisKA) 
+			# 	addHoleAndDomain(domainsOutput, domains[-2]["env_to"]+1, holeEnd, domains[-1], True)
+			# else:
+			# 	domainsOutput.append(domains[-1])
+				
+	elif domains[-1]["name"] not in HIS_KINASE_CATAL_DOMAINS:
 		#This means that the HATPase_c domain simply has not been recognized
-		if domains[-1] == 'HisKA':
+		if domains[-1]["name"] in HIS_KINASE_DIM_DOMAINS:
 			checkAndAddHoles(domains, domainsOutput, minDomainLength)
 		#This should not happen. Output the result if this happend:
-		elif domains[-2] == 'HisKA':
+		elif domains[-2]["name"] in HIS_KINASE_DIM_DOMAINS:
 			print ("Something is not OK")
 		#This should not happen either. Output the result if this happend:
-		elif domains[-2] == 'HATPase_c':
+		elif domains[-2]["name"] in HIS_KINASE_CATAL_DOMAINS:
 			print ("Something is not OK")
 		#This should not happen at all:
 		else:
@@ -203,20 +213,24 @@ def checkAndAddHoles(domains, domainsOutput, minDomainLength):
 	isHisKAorHATPase = False
 	#process first domain
 	if firstDomain["env_from"] > minDomainLength:
-		addHoleAndDomain(domainsOutput, 1, firstDomain["env_from"]-1, firstDomain, isHisKAorHATPase)
+		addHoleAndDomain(domainsOutput, 1, firstDomain["env_from"]-1, firstDomain)
+	else:
+		domainsOutput.append(firstDomain)
 	#process middle domains; two last domains are HisKA and HATPase_c and do not require special processing
-	for domain in domains[1:-1]:
-		if domain["name"] == "HisKA":
-			isHisKAorHATPase = True
+	for domain in domains[1:]:
+		# if domain["name"] in HIS_KINASE_DIM_DOMAINS:
+		# 	isHisKAorHATPase = True
 		if (domain["env_from"] - firstDomain["env_to"]) >= minDomainLength:
-			addHoleAndDomain(domainsOutput, firstDomain["env_to"]+1, domain["env_from"]-1, domain, isHisKAorHATPase)
-			firstDomain = domain	
+			addHoleAndDomain(domainsOutput, firstDomain["env_to"]+1, domain["env_from"]-1, domain)
+			firstDomain = domain
+		else:
+			domainsOutput.append(domain)
 
-def addHoleAndDomain(domainsOutput, holeStart, holeEnd, domain, isHisKAorHATPase=False):
+def addHoleAndDomain(domainsOutput, holeStart, holeEnd, domain):
 	domainsOutput.append({"name": "hole", "env_from": holeStart, "env_to": holeEnd})
-	if not isHisKAorHATPase:
-		domainsOutput.append(domain)
-
+	# if not isHisKAorHATPase:
+	# 	domainsOutput.append(domain)
+	domainsOutput.append(domain)
 
 def removeOverlapps(domainsSorted):
 	tolerance = 10
@@ -269,6 +283,7 @@ def compareEvalues(pfam1, pfam2):
 		
 def main(argv):
 	initialize(argv)
+	processDomains()
 
 main(sys.argv)
 	

@@ -186,50 +186,37 @@ def processHoles(domains):
 	minDomainLength = 100
 	minLengthForHisKA = 150
 	domainsOutput = []
-	HisKA_ind = 0
-	HATPase_ind = 0
+	HisKA_ind = -1
+	HATPase_ind = -1
 	for domain in domains:
-		if domain["name"] in HIS_KINASE_DIM_DOMAINS: HisKA_ind = domain.index(domain["name"])
-		elif domain["name"] in HIS_KINASE_CATAL_DOMAINS: HATPase_ind = domain.index(domain["name"])
+		if domain["name"] in HIS_KINASE_DIM_DOMAINS: HisKA_ind = domains.index(domain)
+		elif domain["name"] in HIS_KINASE_CATAL_DOMAINS: HATPase_ind = domains.index(domain)
 
-	if domains[-1]["name"] in HIS_KINASE_CATAL_DOMAINS:
-		if domains[:-1]:
-			if domains[-2]["name"] in HIS_KINASE_DIM_DOMAINS:
+	if HATPase_ind >= 0:
+		if domains[:HATPase_ind]:
+			if HisKA_ind >=0:
 				checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
-			elif domains[-2]["name"] not in HIS_KINASE_DIM_DOMAINS:
-				checkAndAddHolesAndDomains(domains[:-1], domainsOutput, minDomainLength)
-				#process the hole between the penultimate domain and the last domain, under assumption that between these two domains the HisKA domain can be present
-				HisKAprocessing(domains[-1], domains[-2], minLengthForHisKA, minDomainLength, domainsOutput)
-		else:
-			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
-				
-	elif domains[-1]["name"] not in HIS_KINASE_CATAL_DOMAINS:
-		#This means that the HATPase_c domain simply has not been recognized
-		#domains: d1, d2, HisKA, <HTAPase_c>
-		if domains[-1]["name"] in HIS_KINASE_DIM_DOMAINS:
-			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
-		#Below are rare cases
-		#domains: d1, d2, HisKA, <HTAPase_c>, d3
-		elif domains[-2]["name"] in HIS_KINASE_DIM_DOMAINS:
-			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
-		#domains: d1, d2, HisKA|<HisKA>, HTAPase_c, d3
-		#        domains[-2]         domains[-1] 
-		elif domains[-2]["name"] in HIS_KINASE_CATAL_DOMAINS:
-			#domains: d1, d2, HisKA, HTAPase_c, d3
-			if domains[-3]["name"] in HIS_KINASE_DIM_DOMAINS:
-				checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
-			#If HisKA is not recognized: domains: d1, d2, <HisKA>, HTAPase_c, d3
+			#if HisKA domain has not been rcognized
 			else:
-				checkAndAddHolesAndDomains(domains[:-2], domainsOutput, minDomainLength)
-				HisKAprocessing(domains[-2], domains[-3], minLengthForHisKA, minDomainLength, domainsOutput)
-				checkAndAddHolesAndDomains(domains[-2:], domainsOutput, minDomainLength, domains[-2]["env_to"])		
+				checkAndAddHolesAndDomains(domains[:HATPase_ind], domainsOutput, minDomainLength)
+				#process the hole between the penultimate domain and the HATPase domain under the assumption that between these two domains the HisKA domain can be present
+				HisKAprocessing(domains[HATPase_ind], domains[HATPase_ind-1], minLengthForHisKA, minDomainLength, domainsOutput)
+				if domains[HATPase_ind+1:]:
+					checkAndAddHolesAndDomains(domains[HATPase_ind+1:], domainsOutput, minDomainLength, domains[HATPase_ind]["env_to"])
 		else:
+			#if not no domains upstream of the HATPase domain
 			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
-
+	#if HisKA is present but HATPase is not (as HATPase cases are process above)
+	elif HisKA_ind >=0:
+		checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
+	#if both HisKA and HATPase are not in my two lists, HIS_KINASE_DIM_DOMAINS and HIS_KINASE_CATAL_DOMAINS, still process all the domains:
+	else:
+		checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
+		
 	return domainsOutput
 
 def HisKAprocessing(domainUltimate, domainPenultimate, minLengthForHisKA, minDomainLength, domainsOutput):
-	#process the hole between the penultimate domain and the last domain, under assumption that between these two domains the HisKA domain can be present
+	#process the hole between the penultimate domain and the HATPase domain, under the assumption that between these two domains the HisKA domain can be present
 	#      domainPenultimate       domainUltimate 
 	#domains: d1, <hole>, <HisKA>, HTPAse_c
 	HisKAspace = domainUltimate["env_from"] - domainPenultimate["env_to"]        
@@ -237,17 +224,16 @@ def HisKAprocessing(domainUltimate, domainPenultimate, minLengthForHisKA, minDom
 	HisKAdomain = {"name": "<HisKA>", "env_from": holeEnd+1, "env_to": domainUltimate["env_from"]-1}                          																						#domains[-2]         domains[-1] 
 	#if the below condition is satisfied then there is an addition doman before unrecognized HisKA: d1, <hole>, <HisKA>, HTPAse_c	
 	if HisKAspace >= (minLengthForHisKA + minDomainLength):
-		#addHoleAndDomain(domainsOutput, domains[-2]["env_to"]+1, holeEnd, domains[-1], True)
-		addHoleAndDomain(domainsOutput, domainPenultimate["env_to"]+1, holeEnd, HisKAdomain, True)
+		addHoleAndDomain(domainsOutput, domainPenultimate["env_to"]+1, holeEnd, HisKAdomain)
 		domainsOutput.append(domainUltimate)
 	else:
 		domainsOutput.extend([HisKAdomain, domainUltimate])
 
-def checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength, ind=1):
+def checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength, coord=1):
 	firstDomain = domains[0]
 	#process first domain
 	if firstDomain["env_from"] > minDomainLength:
-		addHoleAndDomain(domainsOutput, ind, firstDomain["env_from"]-1, firstDomain)
+		addHoleAndDomain(domainsOutput, coord, firstDomain["env_from"]-1, firstDomain)
 	else:
 		domainsOutput.append(firstDomain)
 	#process the rest of the domains

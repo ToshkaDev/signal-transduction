@@ -142,18 +142,24 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 	if "Gene" in gene and "Aseq" in gene["Gene"] and "pfam31" in gene["Gene"]["Aseq"]:
 		#Ordering domains according to how they are encoded in the gene
 		domainsSorted = sorted(gene["Gene"]["Aseq"]["pfam31"], key=lambda x: x["ali_from"], reverse=False)
+		#if there are entities in domainsSorted
+		#if domainsSorted:
 		if len (domainsSorted) > 0:
 			domainsFiltered = removeOverlapps(domainsSorted)
 			
 			refseqVersion = gene["Gene"]["version"]
 			geneStableId = gene["Gene"]["stable_id"]
 			proteinLength = str(int(gene["Gene"]["length"]/3) - 1)
+			print (geneStableId)
 			domainsOutput = processHoles(domainsFiltered)
 
 			domainArchitecture = ""
+			domainArchitectureSensDomsOnly = ""
 			for domain in domainsOutput:
-				domainArchitecture = domainArchitecture + "{}:{}-{}, ".format(domain["name"], domain["env_from"], domain["env_to"])
-			
+				domainArchitecture = domainArchitecture + "{}:{}-{},".format(domain["name"], domain["env_from"], domain["env_to"])
+				if domain["name"] != "hole" and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_CATAL_DOMAINS and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_DIM_DOMAINS:
+					domainArchitectureSensDomsOnly = domainArchitectureSensDomsOnly + "," + domain["name"]
+
 			#Generate a set of unique domain names and domain to count uniformly sorted
 			#{'domain1': 1, 'domain2': 2}
 			domainToCount = collections.defaultdict(int)
@@ -165,7 +171,7 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 
 			#Save everything to file:
 			with open(OUTPUT_FILE1, "a") as outputFile:
-				outputRecord = "\t".join([genomeVersion, refseqVersion, geneStableId, proteinLength, domainArchitecture.rstrip(","), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
+				outputRecord = "\t".join([genomeVersion, refseqVersion, geneStableId, proteinLength, domainArchitecture.rstrip(","), domainArchitectureSensDomsOnly.lstrip(","), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
 				outputFile.write(outputRecord + "\n")
 
 			#Count a particular domain combination
@@ -175,62 +181,87 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 
 	return False
 
+#### Process holes and domains BEGIN ####
 def processHoles(domains):
 	minDomainLength = 100
 	minLengthForHisKA = 150
 	domainsOutput = []
+	HisKA_ind = 0
+	HATPase_ind = 0
+	for domain in domains:
+		if domain["name"] in HIS_KINASE_DIM_DOMAINS: HisKA_ind = domain.index(domain["name"])
+		elif domain["name"] in HIS_KINASE_CATAL_DOMAINS: HATPase_ind = domain.index(domain["name"])
+
 	if domains[-1]["name"] in HIS_KINASE_CATAL_DOMAINS:
-		if domains[-2]["name"] in HIS_KINASE_DIM_DOMAINS:
-			checkAndAddHoles(domains, domainsOutput, minDomainLength)
-		elif domains[-2]["name"] not in HIS_KINASE_DIM_DOMAINS:
-			checkAndAddHoles(domains, domainsOutput, minDomainLength)
-			# #process the hole between the penultimate domain and the last domain
-			# HisKAspace = domains[-1]["env_from"] - domains[-2]["env_to"]
-			# #if the below condition is satisfied then there is an addition doman after HisKA	
-			# if HisKAspace >= (minLengthForHisKA + minDomainLength):
-			# 	holeEnd = domains[-2]["env_to"] + (HisKAspace - minLengthForHisKA) 
-			# 	addHoleAndDomain(domainsOutput, domains[-2]["env_to"]+1, holeEnd, domains[-1], True)
-			# else:
-			# 	domainsOutput.append(domains[-1])
+		if domains[:-1]:
+			if domains[-2]["name"] in HIS_KINASE_DIM_DOMAINS:
+				checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
+			elif domains[-2]["name"] not in HIS_KINASE_DIM_DOMAINS:
+				checkAndAddHolesAndDomains(domains[:-1], domainsOutput, minDomainLength)
+				#process the hole between the penultimate domain and the last domain, under assumption that between these two domains the HisKA domain can be present
+				HisKAprocessing(domains[-1], domains[-2], minLengthForHisKA, minDomainLength, domainsOutput)
+		else:
+			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
 				
 	elif domains[-1]["name"] not in HIS_KINASE_CATAL_DOMAINS:
 		#This means that the HATPase_c domain simply has not been recognized
+		#domains: d1, d2, HisKA, <HTAPase_c>
 		if domains[-1]["name"] in HIS_KINASE_DIM_DOMAINS:
-			checkAndAddHoles(domains, domainsOutput, minDomainLength)
-		#This should not happen. Output the result if this happend:
+			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
+		#Below are rare cases
+		#domains: d1, d2, HisKA, <HTAPase_c>, d3
 		elif domains[-2]["name"] in HIS_KINASE_DIM_DOMAINS:
-			print ("Something is not OK")
-		#This should not happen either. Output the result if this happend:
+			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
+		#domains: d1, d2, HisKA|<HisKA>, HTAPase_c, d3
+		#        domains[-2]         domains[-1] 
 		elif domains[-2]["name"] in HIS_KINASE_CATAL_DOMAINS:
-			print ("Something is not OK")
-		#This should not happen at all:
+			#domains: d1, d2, HisKA, HTAPase_c, d3
+			if domains[-3]["name"] in HIS_KINASE_DIM_DOMAINS:
+				checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
+			#If HisKA is not recognized: domains: d1, d2, <HisKA>, HTAPase_c, d3
+			else:
+				checkAndAddHolesAndDomains(domains[:-2], domainsOutput, minDomainLength)
+				HisKAprocessing(domains[-2], domains[-3], minLengthForHisKA, minDomainLength, domainsOutput)
+				checkAndAddHolesAndDomains(domains[-2:], domainsOutput, minDomainLength, domains[-2]["env_to"])		
 		else:
-			print ("Something is completely wrong")
+			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
+
 	return domainsOutput
 
-def checkAndAddHoles(domains, domainsOutput, minDomainLength):
+def HisKAprocessing(domainUltimate, domainPenultimate, minLengthForHisKA, minDomainLength, domainsOutput):
+	#process the hole between the penultimate domain and the last domain, under assumption that between these two domains the HisKA domain can be present
+	#      domainPenultimate       domainUltimate 
+	#domains: d1, <hole>, <HisKA>, HTPAse_c
+	HisKAspace = domainUltimate["env_from"] - domainPenultimate["env_to"]        
+	holeEnd = domainPenultimate["env_to"] + (HisKAspace - minLengthForHisKA)
+	HisKAdomain = {"name": "<HisKA>", "env_from": holeEnd+1, "env_to": domainUltimate["env_from"]-1}                          																						#domains[-2]         domains[-1] 
+	#if the below condition is satisfied then there is an addition doman before unrecognized HisKA: d1, <hole>, <HisKA>, HTPAse_c	
+	if HisKAspace >= (minLengthForHisKA + minDomainLength):
+		#addHoleAndDomain(domainsOutput, domains[-2]["env_to"]+1, holeEnd, domains[-1], True)
+		addHoleAndDomain(domainsOutput, domainPenultimate["env_to"]+1, holeEnd, HisKAdomain, True)
+		domainsOutput.append(domainUltimate)
+	else:
+		domainsOutput.extend([HisKAdomain, domainUltimate])
+
+def checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength, ind=1):
 	firstDomain = domains[0]
-	isHisKAorHATPase = False
 	#process first domain
 	if firstDomain["env_from"] > minDomainLength:
-		addHoleAndDomain(domainsOutput, 1, firstDomain["env_from"]-1, firstDomain)
+		addHoleAndDomain(domainsOutput, ind, firstDomain["env_from"]-1, firstDomain)
 	else:
 		domainsOutput.append(firstDomain)
-	#process middle domains; two last domains are HisKA and HATPase_c and do not require special processing
+	#process the rest of the domains
 	for domain in domains[1:]:
-		# if domain["name"] in HIS_KINASE_DIM_DOMAINS:
-		# 	isHisKAorHATPase = True
 		if (domain["env_from"] - firstDomain["env_to"]) >= minDomainLength:
 			addHoleAndDomain(domainsOutput, firstDomain["env_to"]+1, domain["env_from"]-1, domain)
-			firstDomain = domain
 		else:
 			domainsOutput.append(domain)
+		firstDomain = domain
 
 def addHoleAndDomain(domainsOutput, holeStart, holeEnd, domain):
-	domainsOutput.append({"name": "hole", "env_from": holeStart, "env_to": holeEnd})
-	# if not isHisKAorHATPase:
-	# 	domainsOutput.append(domain)
-	domainsOutput.append(domain)
+	domainsOutput.extend([{"name": "hole", "env_from": holeStart, "env_to": holeEnd}, domain])
+
+#### Process holes and domains END ####
 
 def removeOverlapps(domainsSorted):
 	tolerance = 10

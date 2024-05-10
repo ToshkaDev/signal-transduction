@@ -21,6 +21,8 @@ SIGNAL_GENES_HK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=t
 SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 #SIGNAL_GENES_HK = "/signal-genes?where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 #SIGNAL_GENES_HHK = "/signal-genes?where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+SIGNAL_GENES_RR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,rr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+SIGNAL_GENES_HRR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hrr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
 
 INPUT_FILE = None
@@ -32,6 +34,7 @@ TIMEOUT_FILE = "timeout_genomes.txt"
 
 HIS_KINASE_DIM_DOMAINS = ["HisKA", "HisKA_2", "HisKA_3", "H-kinase_dim", "His_kinase"]
 HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
+RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
 
 def initialize(argv):
 	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS
@@ -63,18 +66,24 @@ def initialize(argv):
 #The function first retreives stp-matrix and after that signal genes for those components that have target signaling systems
 #This is done, because it is much faster this way
 def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
+	sensorRegulatorType = "hk"
 	if additionaFieldsTemplate == SIGNAL_GENES_HK:
-		hkOrhhK = "hk"
+		sensorRegulatorType = "hk"
 	elif additionaFieldsTemplate == SIGNAL_GENES_HHK:
-		hkOrhhK = "hhk"
+		sensorRegulatorType = "hhk"
+	elif additionaFieldsTemplate == SIGNAL_GENES_RR:
+		sensorRegulatorType = "rr"
+	elif additionaFieldsTemplate == SIGNAL_GENES_HRR:
+		sensorRegulatorType = "hrr"
+
 	genomeURL = GENOMES_URL + genomeVersion
 	noDataAnymore = False
 
 	#Get stp-matrix and look at the numnber of components and save those components that have two-component systems.
 	#They will be saved in componentsWithTcp list.
-	componentsWithTcp = list() #componentsWithTcp will be poppulated
-	signalGenesRetriever(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, hkOrhhK, noDataAnymore)
-	#Retrieve signal genes in those components that have two-component systems
+	componentsWithTcp = list() #componentsWithTcp will be populated
+	signalGenesRetriever(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, sensorRegulatorType, noDataAnymore)
+	#Retrieve signal genes in those genomic components (chromosomes, scaffolds, or contigs depending on the assembly level) that have two-component systems
 	signalGeneList = list()
 	for component in componentsWithTcp:
 		for num in range(1, 101):
@@ -124,6 +133,8 @@ def processDomains():
 			listOfSignalGeneLists = []
 			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HK))
 			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HHK))
+			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_RR))
+			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HRR))
 			domainCombinToCount = collections.defaultdict(int)
 
 			for signalGeneList in listOfSignalGeneLists:
@@ -150,15 +161,14 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 			refseqVersion = gene["Gene"]["version"]
 			geneStableId = gene["Gene"]["stable_id"]
 			proteinLength = str(int(gene["Gene"]["length"]/3) - 1)
-			print (geneStableId)
 			domainsOutput = processHoles(domainsFiltered)
 
 			domainArchitecture = ""
-			domainArchitectureSensDomsOnly = ""
+			domainArchitectureSensOrRegDomsOnly = ""
 			for domain in domainsOutput:
 				domainArchitecture = domainArchitecture + "{}:{}-{},".format(domain["name"], domain["env_from"], domain["env_to"])
-				if domain["name"] != "hole" and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_CATAL_DOMAINS and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_DIM_DOMAINS:
-					domainArchitectureSensDomsOnly = domainArchitectureSensDomsOnly + "," + domain["name"]
+				if domain["name"] != "hole" and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_CATAL_DOMAINS and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_DIM_DOMAINS and domain["name"] not in RESPONSE_REG_DOMAINS:
+					domainArchitectureSensOrRegDomsOnly = domainArchitectureSensOrRegDomsOnly + "," + domain["name"]
 
 			#Generate a set of unique domain names and domain to count uniformly sorted
 			#{'domain1': 1, 'domain2': 2}
@@ -171,11 +181,13 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 
 			#Save everything to file:
 			with open(OUTPUT_FILE1, "a") as outputFile:
-				outputRecord = "\t".join([genomeVersion, refseqVersion, geneStableId, proteinLength, domainArchitecture.rstrip(","), domainArchitectureSensDomsOnly.lstrip(","), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
+				outputRecord = "\t".join([genomeVersion, refseqVersion, geneStableId, proteinLength, domainArchitecture.rstrip(","), domainArchitectureSensOrRegDomsOnly.lstrip(","), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
 				outputFile.write(outputRecord + "\n")
 
-			#Count a particular domain combination
-			domainCombinToCount[domainsFilteredNamesUniqueStr]+=1
+			#Count a particular domain combination, but first delet 'hole' entry from sortedDomainNames
+			if "hole" in sortedDomainNames:
+				del sortedDomainNames[sortedDomainNames.index("hole")]
+			domainCombinToCount[",".join(sortedDomainNames)]+=1
 			
 			return
 
@@ -204,9 +216,9 @@ def processHoles(domains):
 				if domains[HATPase_ind+1:]:
 					checkAndAddHolesAndDomains(domains[HATPase_ind+1:], domainsOutput, minDomainLength, domains[HATPase_ind]["env_to"])
 		else:
-			#if not no domains upstream of the HATPase domain
+			#if no domains upstream of the HATPase domain
 			checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
-	#if HisKA is present but HATPase is not (as HATPase cases are process above)
+	#if HisKA is present but HATPase is not (as HATPase cases are processed above)
 	elif HisKA_ind >=0:
 		checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
 	#if both HisKA and HATPase are not in my two lists, HIS_KINASE_DIM_DOMAINS and HIS_KINASE_CATAL_DOMAINS, still process all the domains:
@@ -217,7 +229,7 @@ def processHoles(domains):
 
 def HisKAprocessing(domainUltimate, domainPenultimate, minLengthForHisKA, minDomainLength, domainsOutput):
 	#process the hole between the penultimate domain and the HATPase domain, under the assumption that between these two domains the HisKA domain can be present
-	#      domainPenultimate       domainUltimate 
+	#            domainPenultimate domainUltimate
 	#domains: d1, <hole>, <HisKA>, HTPAse_c
 	HisKAspace = domainUltimate["env_from"] - domainPenultimate["env_to"]        
 	holeEnd = domainPenultimate["env_to"] + (HisKAspace - minLengthForHisKA)

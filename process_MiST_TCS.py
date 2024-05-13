@@ -13,6 +13,7 @@ USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in ge
 	-i || --ifile              - input file
 	-f || --ffile              - first output file
 	-s || --sfile              - second output file
+	-d || --database           - specify database: mist or mist-mags
 '''
 
 #Variables controlled by the script parameters
@@ -25,9 +26,12 @@ PROTEIN_TYPES = ["sensKinase", "respReg"]
 PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPES[0]: OUTPUT_FILE1, PROTEIN_TYPES[1]: OUTPUT_FILE2}
 GENOME_VERSIONS = None
 TIMEOUT_FILE = "timeout_genomes.txt"
-
+DATABASE = "mist"
 
 GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
+METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
+DATABASE_TO_URL = {"mist": GENOMES_URL, "mist-mags": METAGENOMES_URL}
+
 STP_MATRIX = "/stp-matrix"
 SIGNAL_GENES_HK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
@@ -43,9 +47,9 @@ RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
 OUT_FILE_HEADERS = ["Genome_id", "NCBI_id", "MiST_id", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
 
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:f:s:",["help", "ifile=", "ffile=", "sfile="])
+		opts, args = getopt.getopt(argv[1:],"hi:f:s:d:",["help", "ifile=", "ffile=", "sfile=", "database="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -62,6 +66,11 @@ def initialize(argv):
 				OUTPUT_FILE1 = str(arg).strip()
 			elif opt in ("-s", "--sfile"):
 				OUTPUT_FILE2 = str(arg).strip()
+			elif opt in ("-d", "--database"):
+				DATABASE = str(arg).strip()
+				if DATABASE not in DATABASE_TO_URL:
+					print ("Database should be one of the following: " + ", ".join(DATABASE_TO_URL.keys()))
+					sys.exit(2)
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
@@ -85,7 +94,7 @@ def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
 	elif additionaFieldsTemplate == SIGNAL_GENES_HRR:
 		sensorRegulatorType = "hrr"
 
-	genomeURL = GENOMES_URL + genomeVersion
+	genomeURL = DATABASE_TO_URL[DATABASE] + genomeVersion
 	noDataAnymore = False
 
 	#Get stp-matrix and look at the numnber of components and save those components that have two-component systems.
@@ -119,7 +128,7 @@ def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymo
 				with open (TIMEOUT_FILE, "a") as timeoutFile:
 					timeoutFile.write(genomeVersion + "\n")
 			#sleep 5 seconds if gateway timeout happened		
-			time.sleep(5)
+			time.sleep(0.37)
 			continue
 
 		if tcpMatrix and "tcp" in resultAsJson["counts"]:

@@ -15,6 +15,18 @@ USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in ge
 	-s || --sfile              - second output file
 '''
 
+#Variables controlled by the script parameters
+INPUT_FILE = None
+OUTPUT_FILE1 = "output_HK.tsv"
+OUTPUT_FILE2 = "output_RR.tsv"
+
+#Variables set within the script
+PROTEIN_TYPES = ["sensKinase", "respReg"]
+PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPES[0]: OUTPUT_FILE1, PROTEIN_TYPES[1]: OUTPUT_FILE2}
+GENOME_VERSIONS = None
+TIMEOUT_FILE = "timeout_genomes.txt"
+
+
 GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
 STP_MATRIX = "/stp-matrix"
 SIGNAL_GENES_HK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
@@ -24,20 +36,14 @@ SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=
 SIGNAL_GENES_RR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,rr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_HRR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hrr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
-
-INPUT_FILE = None
-OUTPUT_FILE1 = None
-OUTPUT_FILE2 = None
-
-GENOME_VERSIONS = ""
-TIMEOUT_FILE = "timeout_genomes.txt"
-
 HIS_KINASE_DIM_DOMAINS = ["HisKA", "HisKA_2", "HisKA_3", "H-kinase_dim", "His_kinase"]
 HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
 RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
 
+OUT_FILE_HEADERS = ["Genome_id", "NCBI_id", "MiST_id", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
+
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE
 	try:
 		opts, args = getopt.getopt(argv[1:],"hi:f:s:",["help", "ifile=", "ffile=", "sfile="])
 		if len(opts) == 0:
@@ -59,11 +65,14 @@ def initialize(argv):
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
-	
-	with open(INPUT_FILE, "r") as inputFile:
-		GENOME_VERSIONS = [record.strip() for record in inputFile]
+	#Initialize the dictionary with the provided files
+	PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPES[0]: OUTPUT_FILE1, PROTEIN_TYPES[1]: OUTPUT_FILE2}
+	#Write headers to the output files
+	for oFile in PROTEIN_TYPE_TO_OUTFILE.values():
+		with open(oFile, "w") as outFile:
+			outFile.write("\t".join(OUT_FILE_HEADERS))
 
-#The function first retreives stp-matrix and after that signal genes for those components that have target signaling systems
+#The function first retreives stp-matrix and after analyzing the matrix it retrives signal genes for those components that have target signaling systems
 #This is done, because it is much faster this way
 def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
 	sensorRegulatorType = "hk"
@@ -125,31 +134,24 @@ def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymo
 
 def processDomains():
 	genomeNumber = 1
-	for genomeVersion in GENOME_VERSIONS:
-		genomeVersion = genomeVersion.strip()
-		if genomeVersion:
-			print("Genome Number: " + str(genomeNumber))
-			genomeNumber+=1
-			listOfSignalGeneLists = []
-			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HK))
-			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HHK))
-			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_RR))
-			listOfSignalGeneLists.append(retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HRR))
-			domainCombinToCount = collections.defaultdict(int)
-
-			for signalGeneList in listOfSignalGeneLists:
-				for gene in signalGeneList:
-					prepareDomains(gene, genomeVersion, domainCombinToCount)
-			
-			#domainCombinToCount in each genome is populated at the previous step and we can save the result
-			domainCombinToCountList = sorted(list(domainCombinToCount.items()), key=lambda a: a[1], reverse=True)
-			with open(OUTPUT_FILE2, "a") as outputFile:
-				for domainCombinAndCount in domainCombinToCountList:
-					outputFile.write(genomeVersion + "\t" + domainCombinAndCount[0] + "\t" + str(domainCombinAndCount[1]) + "\n")		
+	with open(INPUT_FILE, "r") as inputFile:
+		for genomeVersion in inputFile:
+			genomeVersion = genomeVersion.strip()
+			if genomeVersion:
+				print(" ".join(["Genome Number:", str(genomeNumber), "   Genome ID:", genomeVersion]))
+				genomeNumber+=1
+				listOfSignalGeneLists = []
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HK), PROTEIN_TYPES[0]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HHK), PROTEIN_TYPES[0]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_RR), PROTEIN_TYPES[1]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HRR), PROTEIN_TYPES[1]))
+				for signalGeneList in listOfSignalGeneLists:
+					for gene in signalGeneList[0]:
+						prepareDomains(gene, genomeVersion, signalGeneList[1])
 
 ##*********************************************************************##
 ##********************** Domains processing block**********************##
-def prepareDomains(gene, genomeVersion, domainCombinToCount):
+def prepareDomains(gene, genomeVersion, proteinType):
 	if "Gene" in gene and "Aseq" in gene["Gene"] and "pfam31" in gene["Gene"]["Aseq"]:
 		#Ordering domains according to how they are encoded in the gene
 		domainsSorted = sorted(gene["Gene"]["Aseq"]["pfam31"], key=lambda x: x["ali_from"], reverse=False)
@@ -164,11 +166,12 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 			domainsOutput = processHoles(domainsFiltered)
 
 			domainArchitecture = ""
-			domainArchitectureSensOrRegDomsOnly = ""
+			domainArchitectureSensOrRegDomsOnly = []
 			for domain in domainsOutput:
 				domainArchitecture = domainArchitecture + "{}:{}-{},".format(domain["name"], domain["env_from"], domain["env_to"])
-				if domain["name"] != "hole" and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_CATAL_DOMAINS and domain["name"].lstrip("<").rstrip(">") not in HIS_KINASE_DIM_DOMAINS and domain["name"] not in RESPONSE_REG_DOMAINS:
-					domainArchitectureSensOrRegDomsOnly = domainArchitectureSensOrRegDomsOnly + "," + domain["name"]
+				domainName = domain["name"].lstrip("<").rstrip(">")
+				if domain["name"] != "hole" and domainName not in HIS_KINASE_CATAL_DOMAINS and domainName not in HIS_KINASE_DIM_DOMAINS and domainName not in RESPONSE_REG_DOMAINS:
+					domainArchitectureSensOrRegDomsOnly.append(domain["name"])
 
 			#Generate a set of unique domain names and domain to count uniformly sorted
 			#{'domain1': 1, 'domain2': 2}
@@ -179,19 +182,10 @@ def prepareDomains(gene, genomeVersion, domainCombinToCount):
 			domainsFilteredNamesUniqueStr = ",".join(sortedDomainNames)
 			domainsFilteredNamesUniqueCountsStr = ",".join(["{}:{}".format(domain, domainToCount[domain]) for domain in sortedDomainNames])
 
-			#Save everything to file:
-			with open(OUTPUT_FILE1, "a") as outputFile:
-				outputRecord = "\t".join([genomeVersion, refseqVersion, geneStableId, proteinLength, domainArchitecture.rstrip(","), domainArchitectureSensOrRegDomsOnly.lstrip(","), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
+			#Save everything to a file:
+			with open(PROTEIN_TYPE_TO_OUTFILE[proteinType], "a") as outputFile:
+				outputRecord = "\t".join([genomeVersion, refseqVersion, geneStableId, proteinLength, domainArchitecture.rstrip(","), ",".join(domainArchitectureSensOrRegDomsOnly), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
 				outputFile.write(outputRecord + "\n")
-
-			#Count a particular domain combination, but first delet 'hole' entry from sortedDomainNames
-			if "hole" in sortedDomainNames:
-				del sortedDomainNames[sortedDomainNames.index("hole")]
-			domainCombinToCount[",".join(sortedDomainNames)]+=1
-			
-			return
-
-	return False
 
 #### Process holes and domains BEGIN ####
 def processHoles(domains):
@@ -222,6 +216,7 @@ def processHoles(domains):
 	elif HisKA_ind >=0:
 		checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
 	#if both HisKA and HATPase are not in my two lists, HIS_KINASE_DIM_DOMAINS and HIS_KINASE_CATAL_DOMAINS, still process all the domains:
+	#or if the domains belonw to response regulator, do this:
 	else:
 		checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
 		

@@ -14,12 +14,16 @@ USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in ge
 	-f || --ffile              - first output file
 	-s || --sfile              - second output file
 	-d || --database           - specify database: mist or mist-mags
+	-c || --continue           - start a new analysis or continue with allready existing provided files.
+	                             Users are simply expected to specify -c (--continue) without provinding arguments.
+								 Default is without this paraeter specified, i.e. start a new analysis.
 '''
 
 #Variables controlled by the script parameters
 INPUT_FILE = None
 OUTPUT_FILE1 = "output_HK.tsv"
 OUTPUT_FILE2 = "output_RR.tsv"
+CONTINUE = False
 
 #Variables set within the script
 PROTEIN_TYPES = ["sensKinase", "respReg"]
@@ -45,9 +49,9 @@ RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
 OUT_FILE_HEADERS = ["Genome_id", "NCBI_id", "MiST_id", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
 
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:f:s:d:",["help", "ifile=", "ffile=", "sfile=", "database="])
+		opts, args = getopt.getopt(argv[1:],"hi:f:s:d:c",["help", "ifile=", "ffile=", "sfile=", "database=", "continue"])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -69,15 +73,18 @@ def initialize(argv):
 				if DATABASE not in DATABASE_TO_URL:
 					print ("Database should be one of the following: " + ", ".join(DATABASE_TO_URL.keys()))
 					sys.exit(2)
+			elif opt in ("-c", "--continue"):
+				CONTINUE = True
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
 	#Initialize the dictionary with the provided files
 	PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPES[0]: OUTPUT_FILE1, PROTEIN_TYPES[1]: OUTPUT_FILE2}
-	#Write headers to the output files
-	for oFile in PROTEIN_TYPE_TO_OUTFILE.values():
-		with open(oFile, "w") as outFile:
-			outFile.write("\t".join(OUT_FILE_HEADERS))
+	if not CONTINUE:
+		#Create ouput files and write headers:
+		for oFile in PROTEIN_TYPE_TO_OUTFILE.values():
+			with open(oFile, "w") as outFile:
+				outFile.write("\t".join(OUT_FILE_HEADERS))
 
 #The function first retreives stp-matrix and after analyzing the matrix it retrives signal genes for those components that have target signaling systems
 #This is done, because it is much faster this way
@@ -142,8 +149,8 @@ def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymo
 			if iteration == 9:
 				with open (TIMEOUT_FILE, "a") as timeoutFile:
 					timeoutFile.write(genomeVersion + "\n")
-			#sleep 0.37 seconds if gateway timeout happened
-			time.sleep(0.37)
+			#sleep 5 seconds if gateway timeout happened
+			time.sleep(5)
 			continue
 
 		if tcpMatrix:

@@ -32,11 +32,9 @@ GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
 METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
 DATABASE_TO_URL = {"mist": GENOMES_URL, "mist-mags": METAGENOMES_URL}
 
-STP_MATRIX = "/stp-matrix"
+STP_MATRIX = "/stp-matrix?page=%PAGE%&per_page=100"
 SIGNAL_GENES_HK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
-#SIGNAL_GENES_HK = "/signal-genes?where.ranks=tcp,hk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
-#SIGNAL_GENES_HHK = "/signal-genes?where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_RR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,rr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_HRR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hrr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
@@ -93,52 +91,69 @@ def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
 		sensorRegulatorType = "rr"
 	elif additionaFieldsTemplate == SIGNAL_GENES_HRR:
 		sensorRegulatorType = "hrr"
-
 	genomeURL = DATABASE_TO_URL[DATABASE] + genomeVersion
-	noDataAnymore = False
 
 	#Get stp-matrix and look at the numnber of components and save those components that have two-component systems.
 	#They will be saved in componentsWithTcp list.
 	componentsWithTcp = list() #componentsWithTcp will be populated
-	signalGenesRetriever(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, sensorRegulatorType, noDataAnymore)
+	getSignalGenes(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, sensorRegulatorType, False, False)
+
 	#Retrieve signal genes in those genomic components (chromosomes, scaffolds, or contigs depending on the assembly level) that have two-component systems
 	signalGeneList = list()
 	for component in componentsWithTcp:
-		for num in range(1, 101):
-			additionaFields = additionaFieldsTemplate.replace("%COMPONENT_ID%", str(component["id"])).replace("%PAGE%", str(num))
-			constructedUrl = genomeURL + additionaFields
-			noDataAnymore = signalGenesRetriever(constructedUrl, signalGeneList, genomeVersion, False, noDataAnymore)
-			if noDataAnymore:
-				break
+		getSignalGenes(genomeURL, signalGeneList, genomeVersion, False, additionaFieldsTemplate, component)
+
 	return signalGeneList			
+
+def getSignalGenes(url, elementList, genomeVersion, tcpMatrix, additionaFieldsTemplate=False, component=False):
+	noDataAnymore = False
+	#This range is enough as 100 requests for 100 items per page is 10000 items. The numer of components per genome (or histidine kinase|respose regulators)
+	#is an order of magnitde less than this.
+	#'break' statement will stop sending requests when no data could be retrieved anymore
+	for num in range(1, 101):
+		if additionaFieldsTemplate:
+			additionaFields = additionaFieldsTemplate.replace("%COMPONENT_ID%", str(component["id"])).replace("%PAGE%", str(num))
+			constructedUrl = url + additionaFields
+		else:
+			constructedUrl = url.replace("%PAGE%", str(num))
+		noDataAnymore = signalGenesRetriever(constructedUrl, elementList, genomeVersion, tcpMatrix, noDataAnymore)
+		if noDataAnymore:
+			break
 
 def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymore):
 	for iteration in range (0, 10):
 		try:
 			result = urllib.request.urlopen(url)
 			resultAsJson = json.loads(result.read().decode("utf-8"))
-			if len(resultAsJson) == 0:   #No data anymore from this page on
+			#In case of tcpMatrix: No data anymore from this page on
+			if tcpMatrix and "components" in resultAsJson and not resultAsJson["components"]:
 				noDataAnymore = True
 				break
-			if "name" in resultAsJson:	#404 NotFoundError
+			#Regular case of retrieveing proteins
+			#No data anymore from this page on
+			elif not resultAsJson:
+				noDataAnymore = True
+				break
+			#404 NotFoundError
+			if "name" in resultAsJson:
 				break
 		except urllib.error.HTTPError:
 		#except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
 			if iteration == 9:
 				with open (TIMEOUT_FILE, "a") as timeoutFile:
 					timeoutFile.write(genomeVersion + "\n")
-			#sleep 5 seconds if gateway timeout happened		
+			#sleep 0.37 seconds if gateway timeout happened
 			time.sleep(0.37)
 			continue
 
-		if tcpMatrix and "tcp" in resultAsJson["counts"]:
-			for component in resultAsJson["components"]:
-				if "tcp" in component["counts"] and tcpMatrix in component["counts"]["tcp"]:
-					elementList.append(component)
+		if tcpMatrix:
+			if "tcp" in resultAsJson["counts"]:
+				for component in resultAsJson["components"]:
+					if "tcp" in component["counts"] and tcpMatrix in component["counts"]["tcp"]:
+						elementList.append(component)
 		else:
 			elementList.extend(resultAsJson)
 		break
-
 	return noDataAnymore
 
 def processDomains():

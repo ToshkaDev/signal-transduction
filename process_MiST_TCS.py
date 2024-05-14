@@ -5,6 +5,7 @@ import json
 import collections
 import os.path
 import time
+import logging
 
 USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in genomes.\n\n" + \
 	" \n\n" + \
@@ -31,6 +32,8 @@ PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPES[0]: OUTPUT_FILE1, PROTEIN_TYPES[1]: OUT
 GENOME_VERSIONS = None
 TIMEOUT_FILE = "timeout_genomes.txt"
 DATABASE = "mist"
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
 
 GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
 METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
@@ -144,15 +147,19 @@ def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymo
 			#404 NotFoundError
 			if "name" in resultAsJson:
 				break
-		except urllib.error.HTTPError:
+		except (urllib.error.HTTPError, urllib.error.URLError) as error:
 		#except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
 			if iteration == 9:
 				with open (TIMEOUT_FILE, "a") as timeoutFile:
+					LOGGER.info("Ten attempts to retrieve data were unsuccessful. Save the genome caused the problem to %s file", TIMEOUT_FILE)
 					timeoutFile.write(genomeVersion + "\n")
 			#sleep 5 seconds if gateway timeout happened
+			LOGGER.error("Timeout error: %s", error)
+			LOGGER.info("Sleep for 5 seconds.")
 			time.sleep(5)
+			LOGGER.info("Continue.")
 			continue
-
+			
 		if tcpMatrix:
 			if "tcp" in resultAsJson["counts"]:
 				for component in resultAsJson["components"]:

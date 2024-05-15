@@ -7,8 +7,11 @@ import os.path
 import time
 import logging
 
-USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in genomes.\n\n" + \
-	" \n\n" + \
+OUT_FILE_HEADERS = ["Genome_id", "NCBI_id", "MiST_id", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
+
+USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases and response regulators in genomes. \n" + \
+	"It outputs complete domain information and other data in tabulated format for both histidine kinases and response regualtors separately. \n" + \
+	"Output fields: " + ", ".join(OUT_FILE_HEADERS).rstrip(", \n") + " \n" + \
 	"python 	" + sys.argv[0] + '''
 	-h || --help               - help
 	-i || --ifile              - input file
@@ -17,7 +20,7 @@ USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases in ge
 	-d || --database           - specify database: mist or mist-mags
 	-c || --continue           - start a new analysis or continue with allready existing provided files.
 	                             Users are simply expected to specify -c (--continue) without provinding arguments.
-								 Default is without this paraeter specified, i.e. start a new analysis.
+	                             Default is without this paraeter specified, i.e. start a new analysis.
 '''
 
 #Variables controlled by the script parameters
@@ -48,8 +51,6 @@ SIGNAL_GENES_HRR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=
 HIS_KINASE_DIM_DOMAINS = ["HisKA", "HisKA_2", "HisKA_3", "H-kinase_dim", "His_kinase"]
 HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
 RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
-
-OUT_FILE_HEADERS = ["Genome_id", "NCBI_id", "MiST_id", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
 
 def initialize(argv):
 	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE
@@ -131,7 +132,7 @@ def getSignalGenes(url, elementList, genomeVersion, tcpMatrix, additionaFieldsTe
 			break
 
 def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymore):
-	for iteration in range (0, 10):
+	for iteration in range (1, 11):
 		try:
 			result = urllib.request.urlopen(url)
 			resultAsJson = json.loads(result.read().decode("utf-8"))
@@ -148,14 +149,13 @@ def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymo
 			if "name" in resultAsJson:
 				break
 		except (urllib.error.HTTPError, urllib.error.URLError) as error:
-		#except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
-			if iteration == 9:
+			if iteration == 10:
 				with open (TIMEOUT_FILE, "a") as timeoutFile:
 					LOGGER.info("Ten attempts to retrieve data were unsuccessful. Save the genome caused the problem to %s file", TIMEOUT_FILE)
 					timeoutFile.write(genomeVersion + "\n")
 			#sleep 5 seconds if gateway timeout happened
 			LOGGER.error("Timeout error: %s", error)
-			LOGGER.info("Sleep for 5 seconds.")
+			LOGGER.info("Attempt " + str(iteration) + ". Sleep for 5 seconds...")
 			time.sleep(5)
 			LOGGER.info("Continue.")
 			continue
@@ -348,4 +348,3 @@ def main(argv):
 	processDomains()
 
 main(sys.argv)
-	

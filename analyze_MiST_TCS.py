@@ -12,20 +12,23 @@ USAGE = "\n\nThe script . \n" + \
 	"python 	" + sys.argv[0] + '''
 	-h || --help               - help
 	-i || --ifile              - input file
+	-f || --ffile              - output file 1
+	-g || --gfile              - output file 2 
 '''
 
 #Variables controlled by the script parameters
 INPUT_FILE = None
-OUTPUT_FILE = "output_HK.tsv"
+OUTPUT_FILE1 = "genome_to_domain_data.tsv"
+OUTPUT_FILE2 = "genome_to_domain_comb_data.tsv"
 
 #Variables set within the script
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
 
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:o:",["help", "ifile=", "ofile="])
+		opts, args = getopt.getopt(argv[1:],"hi:f:g:",["help", "ifile=", "ffile=", "gfile="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -38,8 +41,11 @@ def initialize(argv):
 				sys.exit()
 			elif opt in ("-i", "--ifile"):
 				INPUT_FILE = str(arg).strip()
-			elif opt in ("-o", "--ofile"):
-				OUTPUT_FILE = str(arg).strip()
+			elif opt in ("-f", "--ffile"):
+				OUTPUT_FILE1 = str(arg).strip()
+			elif opt in ("-g", "--gfile"):
+				OUTPUT_FILE2 = str(arg).strip()
+
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
@@ -47,9 +53,6 @@ def initialize(argv):
 HIS_KINASE_DIM_DOMAINS = ["HisKA", "HisKA_2", "HisKA_3", "H-kinase_dim", "His_kinase"]
 HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
 RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
-
-
-#{"GCF_xxx": {}}
 
 
 
@@ -67,19 +70,25 @@ def findDomainAndCombPrevalenceInProteins():
 	domain_to_protein_count = collections.defaultdict(int)
 	domain_comb_to_protein_count = collections.defaultdict(int) 
 	sensor_domain_comb = ""
-
 	Genome_id_prev = None
-	Genome_id = "Holder"
 	with open(INPUT_FILE, "r") as iFile:
 		for protein in iFile:
 			#filed 6 has only uniqe domain names with indicated counts showing how many times a given domain is present in a given protein.
 			# Ex., HATPase_c:1,HisKA_2:1,MEDS:1,PAS:1,PAS_3:2,PAS_4:1,PAS_9:1 
-			domain_counts = protein.replace("<", "").replace(">", "").strip().split("\t")[6]
+			protein_record = protein.strip().split("\t")
+			Genome_id = protein_record[0]
+			domain_counts = protein_record[6].replace("<", "").replace(">", "")
 			#if records of a new genome began, save the previous genome data and update variables
 			if Genome_id != Genome_id_prev:
 				if Genome_id_prev:
-					GENOME_TO_DOMAIN_DATA[Genome_id_prev] = domain_to_protein_count
-					GENOME_TO_DOMAIN_COMB_DATA[Genome_id_prev] = domain_comb_to_protein_count
+					#GENOME_TO_DOMAIN_DATA[Genome_id_prev] = domain_to_protein_count
+					#GENOME_TO_DOMAIN_COMB_DATA[Genome_id_prev] = domain_comb_to_protein_count
+					with open (OUTPUT_FILE1, "a") as oFile1, open(OUTPUT_FILE2, "a"):
+						for domain,count in domain_to_protein_count.items():
+							oFile1.write("\t".join([Genome_id_prev, domain, count]) + "\n")
+						for domain_comb,count in domain_comb_to_protein_count.items():
+							oFile1.write("\t".join([Genome_id_prev, domain_comb, count]) + "\n")
+
 				Genome_id_prev = Genome_id
 				domain_to_protein_count = collections.defaultdict(int)
 				domain_comb_to_protein_count = collections.defaultdict(int)

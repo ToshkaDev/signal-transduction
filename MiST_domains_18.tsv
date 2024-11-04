@@ -30,11 +30,11 @@
 		LuxQ-periplasm	Cache	double Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
 		CHASE7	Cache	double Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
 		GAPES1	Cache	double Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
-		sCache2	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
-		sCache3_1	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
-		sCache3_2	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
-		sCache3_3	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
-		sCache-like	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
+		sCache_2	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
+		sCache_3_1	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
+		sCache_3_2	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
+		sCache_3_3	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
+		sCache_like	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
 		Ykul_C	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
 		CHASE4	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
 		CHASE8	Cache	single Cache-like small molecule binding domain	Sensor, input	YES	Pfam		
@@ -293,8 +293,8 @@
 		HisKA_3	His_Kinase_A	histidine kinase dimerization domain	transmitter	YES	Pfam		
 		H-kinase_dim	His_Kinase_A	histidine kinase dimerization (P3) domain, CheA-specific	transmitter	YES	Pfam		
 Two-component system	Histidine kinase	HATPase_c	His_Kinase_A	histidine kinase catalytic domain	transmitter	NO	Pfam		
-Two-component system	Histidine kinase	HATPase_c2	His_Kinase_A	anti-sigma regulatory factor, monomeric histidine kinase domain	transmitter	NO	Pfam		
-Two-component system	Histidine kinase	HATPase_c5	His_Kinase_A	histidine kinase catalytic domain	transmitter	YES	Pfam		
+Two-component system	Histidine kinase	HATPase_c_2	His_Kinase_A	anti-sigma regulatory factor, monomeric histidine kinase domain	transmitter	NO	Pfam		
+Two-component system	Histidine kinase	HATPase_c_5	His_Kinase_A	histidine kinase catalytic domain	transmitter	YES	Pfam		
 Two-component system	Histidine kinase	HWE_HK	His_Kinase_A	histidine kinase catalytic domain	transmitter	YES	Pfam		
 Chemotaxis	CheA	HK_CA:Che		histidine kinase catalytic domain, CheA-specific		YES	Agfam	chemotaxis	Che
 Two-component system	Histidine kinase	HK_CA		histidine kinase catalytic domain	transmitter	YES	Agfam		

@@ -75,6 +75,7 @@ def processInput():
 # domain_to_protein_count = {"dCache_1":5, "GAF": 2, ...}. This means that in a given genome dCache was found in 5 proteins and GAF in 2 of a considered system.
 # This does not count how many times a domain is present in a single protein.
 # domain_comb_to_protein_count = {"MEDS,PAS,PAS_3,PAS_4,PAS_9":2}. This means that a particualr domain combiation was found in 2 protins in the given genome
+# reports inofrmation per genome
 def findDomainAndCombPrevalenceInProteins():
 	domain_to_protein_count = collections.defaultdict(int)
 	# MiST domain superfamilies only
@@ -108,27 +109,32 @@ def findDomainAndCombPrevalenceInProteins():
 				superfamily_comb_to_protein_count = collections.defaultdict(int)
 
 			domains_and_counts = domain_counts.split(",")
+			# empty list to collect domains of a protein and add the domain combination dictinary (domain_comb_to_protein_count)
+			domains = []
+			# empty list to collect superfamilie of domains of a proteins and add to the superfamily combination dictionary (superfamily_comb_to_protein_count)
+			domains_and_superfamilies = []
 			for domain in domains_and_counts:
 				domain = domain.split(":")[0]
 				# if entry is a sensor domain
-				if domain not in HIS_KINASE_DIM_DOMAINS and domain not in HIS_KINASE_CATAL_DOMAINS:
+				if domain not in HIS_KINASE_DIM_DOMAINS and domain not in HIS_KINASE_CATAL_DOMAINS and domain not in RESPONSE_REG_DOMAINS:
 					domain_to_protein_count[domain]+=1
+					domains.append(domain)
 					if domain in MIST_DOMAIN_TO_SUPERFAMILY:
 						superfamily_to_protein_count[MIST_DOMAIN_TO_SUPERFAMILY[domain]]+=1
+						domains_and_superfamilies.append(MIST_DOMAIN_TO_SUPERFAMILY[domain])
 					else:
 						superfamily_to_protein_count[domain]+=1
+						domains_and_superfamilies.append(domain)
 
 			# count this domain combination
-			domains = sorted(domain_to_protein_count.keys())
-			domain_comb_to_protein_count[",".join(domains)]+=1			
-			
+			domain_comb_to_protein_count[",".join(sorted(domains))]+=1
+
 			# count this superfamily combination
-			superfamilies = sorted(superfamily_to_protein_count.keys())
-			superfamily_comb_to_protein_count[",".join(superfamilies)]+=1
+			superfamily_comb_to_protein_count[",".join(sorted(domains_and_superfamilies))]+=1
 			
 def writeToFile(dataDict, Genome_id_prev, outputFile):
 	with open (outputFile, "a") as oFile:
-		for element,count in dataDict.items():
+		for element, count in dataDict.items():
 			oFile.write("\t".join([Genome_id_prev, element, str(count)]) + "\n")
 
 def main(argv):

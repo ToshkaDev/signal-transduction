@@ -28,8 +28,8 @@ GENOME_TO_DOMAIN = collections.defaultdict(list)
 GENOME_TO_TAXONOMY = {}
 # {"full taxonomy up to the selected level": ["Genome1", "Genome2", "Genome3", ...], ...}
 TAXONOMY_TO_GENOMES = collections.defaultdict(list)
-# {"full taxonomy up to the selected level": ["domain1 (domain combination 1)": 21, "domain2(or domain comb 2)": 852, ...], ...}
-TAXONOMY_TO_STATISTICS = {}
+# {"full taxonomy up to the selected level": {"domain1 (domain combination 1)": 21, "domain2(or domain comb 2)": 852, ...}, ...}
+TAXONOMY_TO_STATISTICS = collections.defaultdict(dict)
 # Variables set within the script
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
@@ -56,6 +56,7 @@ def initialize(argv):
 				OUTPUT_FILE1 = str(arg).strip()
 			elif opt in ("-t", "--taxlevel"):
 				TAXONOMY_LEVEL = tax_level_selector(str(arg).strip())
+				print ("Taxonomy level is '" + arg + "':", TAXONOMY_LEVEL)
 				if TAXONOMY_LEVEL == None:
 					raise Exception("Incorrect argument of -t (--taxlevel) option")
 	except Exception as e:
@@ -67,8 +68,11 @@ def process_input():
 	with open(INPUT_FILE1, "r") as iFile1:
 		for line in iFile1:
 			# domain_s can be a signle domain (GAF_3) or a domain combination (ex, GAF_3,PAS_3,PAS_4,hole)
-			genomeID, domain_s, count = line.strip().split("\t")
-			GENOME_TO_DOMAIN[genomeID].append((domain_s, count))
+			genomeID, domain_c, count = line.strip().split("\t")
+			# {"GenomeID1": (TIM, 5), ... }
+			# Can be domain combination to counts: ("TIM,PIR", 62), ...
+			# i.e., domain_c is a single domain or a domain combination
+			GENOME_TO_DOMAIN[genomeID].append((domain_c, int(count)))
 	with open(INPUT_FILE3, "r") as iFile3:
 		for line in iFile3:
 			record = line.strip().split("\t")
@@ -80,27 +84,34 @@ def process_input():
 # reports inofrmation per taxon
 # G1 Domcomb2 12
 # d__Archaea;p__Halobacteriota;c__Methanosarcinia;o__Methanosarcinales;f__Methanosarcinaceae;g__Methanosarcina;s__Methanosarcina mazei
-#def process_domains_per_taxon():
-	#for genome, domain_counts in GENOME_TO_DOMAIN.items():
-		#for element in domain_counts:
-
-
-		#TAXONOMY_TO_STATISTICS[GENOME_TO_TAXONOMY[genome]] 
+def process_domains_per_taxon():
+	for genome, domain_counts in GENOME_TO_DOMAIN.items():
+		for element in domain_counts:
+			taxonomy = GENOME_TO_TAXONOMY[genome]
+			domain_c = element[0]
+			if  domain_c in TAXONOMY_TO_STATISTICS[taxonomy]:
+				TAXONOMY_TO_STATISTICS[taxonomy][domain_c] += element[1]
+			else:
+				TAXONOMY_TO_STATISTICS[taxonomy][domain_c] = element[1]
+	with open(OUTPUT_FILE1, "w") as oFile:
+		for taxon, domain_counts in TAXONOMY_TO_STATISTICS.items():
+			for domain_c, count in domain_counts.items():
+				oFile.write("\t".join([taxon, domain_c, str(count)]) + "\n")
 
 def tax_level_selector(level):
-	if level is "species":
+	if level == "species":
 		return 7
-	elif level is "genus":
+	elif level == "genus":
 		return 6
-	elif level is "family":
+	elif level == "family":
 		return 5
-	elif level is "order":
+	elif level == "order":
 		return 4
-	elif level is "class":
+	elif level == "class":
 		return 3
-	elif level is "phylum":
+	elif level == "phylum":
 		return 2
-	elif level is "kingdom":
+	elif level == "kingdom":
 		return 1
 	return None
 						

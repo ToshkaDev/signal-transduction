@@ -1,0 +1,5 @@
+cut -f 1 his_kinases.tsv  | sort -u > his_genomes.txt
+cut -f 1 resp_regulators.tsv  | sort -u > resp_genomes.txt
+diff -y resp_genomes.txt his_genomes.txt | grep '>' > his_genomes_uniq.txt 
+diff -y resp_genomes.txt his_genomes.txt | grep '<' > resp_genomes_uniq.txt 
+

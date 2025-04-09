@@ -1,0 +1,42 @@
+./signal-transduction/process_MiST_TCS.py -i repr_set_v214_genomes_mist.txt -f /ssd2/Large_ST/two_component_systems/his_kinases_bacteria.tsv -s /ssd2/Large_ST/two_component_systems/resp_regulators_bacteria.tsv -d mist
+
+Continue after stop:
+./signal-transduction/process_MiST_TCS.py -i repr_set_v214_genomes_mist_rest.txt -f /ssd2/Large_ST/two_component_systems/his_kinases_bacteria.tsv -s /ssd2/Large_ST/two_component_systems/resp_regulators_bacteria.tsv -d mist -c
+
+Process MAGs now:
+./signal-transduction/process_MiST_TCS.py -i repr_set_v214_genomes_mist-metagenomes.txt -f /ssd2/Large_ST/two_component_systems/his_kinases_mags_bacteria.tsv -s /ssd2/Large_ST/two_component_systems/resp_regulators_mags_bacteria.tsv -d mist-mags
+
+
+Continue after stop:
+./signal-transduction/process_MiST_TCS.py -i repr_set_v214_Oct2024_additional_bact_genomes.txt -f ./results/his_kinases.tsv -s ./results/resp_regulators.tsv -d mist -c
+
+
+Archae:
+
+./signal-transduction/process_MiST_TCS.py -i MiST_archaea_genomes.txt -f ./results/his_kinases_archaea.tsv -s ./results/resp_regulators_archaea.tsv -d mist
+
+
+./signal-transduction/process_MiST_TCS.py -i MetaMiST_archaea_genomes.txt -f ./results/his_kinases_archaea_mags.tsv -s ./results/resp_regulators_archaea_mags.tsv -d mist-mags
+
+
+
+
+for efile in ./results/obtain_and_process_tcs_output/*all.tsv; do
+	efile=${efile##*/}
+	./pipeline/analyze_tcs_per_genome.py -i ${efile} -s ./input/MiST_domains_18.tsv -f ./results/analyze_tcs_per_genome_output/${efile%.*}_domains.tsv -g ./results/analyze_tcs_per_genome_output/${efile%.*}_domain_comb.tsv -k ./results/analyze_tcs_per_genome_output/${efile%.*}_superfamily.tsv -l ./results/analyze_tcs_per_genome_output/${efile%.*}_superfamily_comb.tsv
+
+ANALYZE:
+
+
+./pipeline/analyze_tcs_per_genome.py -i ./results/obtain_and_process_tcs_output/his_kinases_archaea_all.tsv -s ./input/MiST_domains_18.tsv -f ./results/analyze_tcs_per_genome_output/his_kinases_archaea_all_domains.tsv -g ./results/analyze_tcs_per_genome_output/his_kinases_archaea_all_domain_comb.tsv -k ./results/analyze_tcs_per_genome_output/his_kinases_archaea_all_superfamily.tsv -l ./results/analyze_tcs_per_genome_output/his_kinases_archaea_superfamily_comb.tsv
+
+
+./pipeline/analyze_tcs_per_taxon.py -i ./results/process_MiST_TCS_per_genome/his_kinases_archaea_all_domain_comb.tsv -s /home/vadim/bin/ar53_bac120_taxonmy_r214.tsv -f his_kinases_archaea_all_domain_comb_pertaxon.tsv -t genus 
+
+
+
+
+
+
+
+

@@ -1,0 +1,15 @@
+cat his_kinases_archaea.tsv his_kinases_archaea_mags.tsv > his_kinases_archaea_all.tsv
+cat resp_regulators_archaea.tsv resp_regulators_archaea_mags.tsv > resp_regulators_archaea_all.tsv
+
+cat his_kinases_bacteria.tsv his_kinases_mags_bacteria.tsv > his_kinases_bacteria_all.tsv
+cat resp_regulators_bacteria.tsv resp_regulators_mags_bacteria.tsv > resp_regulators_bacteria_all.tsv
+
+
+
+
+
+Sensors:
+cut -f 6 his_kinases_bacteria.tsv | sed 's/,Hpt//' | sort | uniq -c | sort -gr -k1 | less
+
+Sort domains based on the presense in proteins:
+

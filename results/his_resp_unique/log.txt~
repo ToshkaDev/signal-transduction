@@ -1,0 +1,5 @@
+vadim@Carapucho:~/Documents/Projects/Large_Scale_ST/TwoCompInputOutput/results$ cut -f 1 his_kinases.tsv  | sort -u > his_genomes.txt
+vadim@Carapucho:~/Documents/Projects/Large_Scale_ST/TwoCompInputOutput/results$ cut -f 1 resp_regulators.tsv  | sort -u > resp_genomes.txt
+vadim@Carapucho:~/Documents/Projects/Large_Scale_ST/TwoCompInputOutput/results$ diff -y resp_genomes.txt his_genomes.txt | grep '>' > his_genomes_uniq.txt 
+vadim@Carapucho:~/Documents/Projects/Large_Scale_ST/TwoCompInputOutput/results$ diff -y resp_genomes.txt his_genomes.txt | grep '<' > resp_genomes_uniq.txt 
+

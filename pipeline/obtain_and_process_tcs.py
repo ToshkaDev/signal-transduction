@@ -174,7 +174,7 @@ def processDomains():
 	genomeNumber = 1
 	with open(INPUT_FILE, "r") as inputFile:
 		for genomeVersion in inputFile:
-			genomeVersion = genomeVersion.strip()
+			genomeVersion = genomeVersion.split("\t")[1]
 			if genomeVersion:
 				print(" ".join(["Genome Number:", str(genomeNumber), "   Genome ID:", genomeVersion]))
 				genomeNumber+=1

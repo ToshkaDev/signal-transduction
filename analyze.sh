@@ -1,11 +1,12 @@
 #!/bin/bash
 
+declare -A DB=(["MiST"]="mist" ["MetaMiST"]="mist-mags")
+
 check_create() {
 	[ ! -d $1 ] && mkdir $1
 }
 
 prepare_files() {
-	declare -A DB=(["MiST"]="mist" ["MetaMiST"]="mist-mags")
 	BACT_FILE="./input/repr_set_v214_Oct2024_MiST_MetaMiST_bact.tsv"
 	ARCH_FILE="./input/repr_set_v214_Oct2024_MiST_MetaMiST_arch.tsv"
 
@@ -17,7 +18,7 @@ prepare_files() {
 		grep "$db" ${ARCH_FILE} > ${ARCH_FILE%.*}_"${DB[$db]}".tsv
 	done
 
-	unzip ./input/ar53_bac120_taxonmy_r214.tsv.zip
+	unzip ./input/gtdb_taxonomy/ar53_bac120_taxonmy_r214.tsv.zip -d ./input/gtdb_taxonomy
 }
 
 initialize_scripts_and_folders() {
@@ -36,8 +37,11 @@ initialize_scripts_and_folders() {
 
 # Obtain and perform first step analysis of two-component systems
 obtain() {
+	echo "Starting 'obtain' ..."
+	echo ${OFOLDER}
 	# Fetch TCS for Archaea:
 	for db in ${DB[@]}; do
+		echo "obtina is running"
 		./pipeline/${OBTAIN} -i ${ARCH_FILE%.*}_$db.tsv \
 			-f ${OFOLDER}/his_kinases_archaea_$db.tsv \
 			-s ${OFOLDER}/resp_regulators_archaea_$db.tsv \
@@ -61,6 +65,7 @@ obtain() {
 
 # Analyze two-component systems per genome and per taxonnomic level
 analyze() {
+	echo "Starting 'analyze' ..."
 	## Analyze tcs per genome
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}

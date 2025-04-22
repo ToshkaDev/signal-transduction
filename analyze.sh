@@ -68,6 +68,7 @@ analyze() {
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}
 		./pipeline/${ANALYZEG} -i ${efile} -s ./input/MiST_domains_18.tsv \
+		-t ./input/gtdb_metadata/ar53_bac120_metadata_r214_ed.tsv \
 		-f ${AGFOLDER}/${edfile%.*}_domains.tsv \
 		-g ${AGFOLDER}/${edfile%.*}_domain_comb.tsv \
 		-k ${AGFOLDER}/${edfile%.*}_superfamily.tsv \

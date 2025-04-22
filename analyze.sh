@@ -18,7 +18,7 @@ prepare_files() {
 		grep "$db" ${ARCH_FILE} > ${ARCH_FILE%.*}_"${DB[$db]}".tsv
 	done
 
-	unzip ./input/gtdb_taxonomy/ar53_bac120_taxonmy_r214.tsv.zip -d ./input/gtdb_taxonomy
+	unzip ./input/gtdb_metadata/ar53_bac120_metadata_r214.tsv.zip -d ./input/gtdb_metadata
 }
 
 initialize_scripts_and_folders() {
@@ -38,10 +38,8 @@ initialize_scripts_and_folders() {
 # Obtain and perform first step analysis of two-component systems
 obtain() {
 	echo "Starting 'obtain' ..."
-	echo ${OFOLDER}
 	# Fetch TCS for Archaea:
 	for db in ${DB[@]}; do
-		echo "obtina is running"
 		./pipeline/${OBTAIN} -i ${ARCH_FILE%.*}_$db.tsv \
 			-f ${OFOLDER}/his_kinases_archaea_$db.tsv \
 			-s ${OFOLDER}/resp_regulators_archaea_$db.tsv \
@@ -81,7 +79,8 @@ analyze() {
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*.tsv; do
 			edfile=${efile##*/}
-			./pipeline/${ANALYZET} -i ${efile} -s ./input/gtdb_taxonomy/*.tsv \
+			#./pipeline/${ANALYZET} -i ${efile} -s ./input/gtdb_taxonomy/*.tsv \
+			./pipeline/${ANALYZET} -i ${efile} -s ./input/gtdb_metadata/ar53_bac120_metadata_r214_ed.tsv \
 			-f ${ATFOLDER}/${edfile%.*}_$level.tsv \
 			-t $level
 		done

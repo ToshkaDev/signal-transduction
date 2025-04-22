@@ -18,7 +18,6 @@ USAGE = "\nThe script calculates domain and domain combination prevalences at ch
 # Variables controlled by the script parameters
 INPUT_FILE1 = None
 INPUT_FILE2 = None
-INPUT_FILE3 = "/home/vadim/bin/ar53_bac120_taxonmy_r214.tsv"
 TAXONOMY_LEVEL = "species"
 
 OUTPUT_FILE1 = "domain_statistics_per_taxon.tsv"
@@ -68,11 +67,11 @@ def process_input():
 			# {"GenomeID1": (TIM, 5), ... }
 			# Can be domain combination to counts: ("TIM,PIR", 62), ...
 			GENOME_TO_DOMAIN[genomeID].append((domain_c, int(count)))
-	with open(INPUT_FILE3, "r") as iFile3:
-		for line in iFile3:
+	with open(INPUT_FILE2, "r") as iFile2:
+		for line in iFile2:
 			record = line.strip().split("\t")
 			genomeID = "_".join(record[0].split("_")[1:])
-			taxonomy = ";".join(record[1].split(";")[:TAXONOMY_LEVEL])
+			taxonomy = ";".join(record[2].split(";")[:TAXONOMY_LEVEL])
 			GENOME_TO_TAXONOMY[genomeID] = taxonomy
 			TAXONOMY_TO_GENOMES[taxonomy].append(genomeID)
 

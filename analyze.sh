@@ -18,7 +18,11 @@ prepare_files() {
 		grep "$db" ${ARCH_FILE} > ${ARCH_FILE%.*}_"${DB[$db]}".tsv
 	done
 
+	echo "Decompress GTDB metadata file" 
 	unzip ./input/gtdb_metadata/ar53_bac120_metadata_r214.tsv.zip -d ./input/gtdb_metadata
+	
+	echo "Unpack and decompress the results of querying mistdb.com to obtain domain information for analyzed genomes" 
+	tar xvf ./results/obtain_and_process_tcs/output.tar.gz -C ./results/obtain_and_process_tcs/
 }
 
 initialize_scripts_and_folders() {

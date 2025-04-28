@@ -63,7 +63,7 @@ def process_input():
 	with open(INPUT_FILE1, "r") as iFile1:
 		for line in iFile1:
 			# domain_c can be a signle domain (GAF_3) or a domain combination (ex, GAF_3,PAS_3,PAS_4,hole)
-			genomeID, domain_c, count = line.strip().split("\t")
+			genomeID, domain_c, count = line.strip().split("\t")[:3]
 			# {"GenomeID1": (TIM, 5), ... }
 			# Can be domain combination to counts: ("TIM,PIR", 62), ...
 			GENOME_TO_DOMAIN[genomeID].append((domain_c, int(count)))

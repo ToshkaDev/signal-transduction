@@ -1,15 +1,14 @@
-# Signal Transduction
+# SIGNAL: A high-throughput pipeline for large-scale analysis of microbial signal transduction systems
+
 ![License](https://img.shields.io/github/license/ToshkaDev/signal-transduction)
 ![Python](https://img.shields.io/badge/python-3.6%2B-blue)
 ![Shell](https://img.shields.io/badge/shell-Bash-blue)
 ![Repo Size](https://img.shields.io/github/repo-size/ToshkaDev/signal-transduction)
 ![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)
 
-**Large-scale analysis of signal transduction systems encoded in bacterial and archaeal genomes.**
-
 > 🚧 **This project is under active development. Expect frequent changes.**
 
-This pipeline is designed to perform high-throughput analysis of bacterial and archaeal genomes to uncover patterns in signal transduction systems across genomes, taxonomic groups, and functional architectures. The current dataset includes **26,221 representative genomes**.
+**SIGNAL** (**S**ystematic **I**nvestigation of **G**enomic **N**etworks for **A**nalysis of **L**ogic-based signaling) is a pipeline designed to perform high-throughput analysis of bacterial and archaeal genomes to uncover patterns in signal transduction systems across genomes, taxonomic groups, and functional architectures. The current dataset includes **26,221 representative genomes**.
 
 ---
 

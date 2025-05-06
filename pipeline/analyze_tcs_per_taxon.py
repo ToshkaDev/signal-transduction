@@ -26,7 +26,11 @@ GENOME_TO_DOMAIN = collections.defaultdict(list)
 GENOME_TO_TAXONOMY = {}
 # {"full taxonomy up to the selected level": ["Genome1", "Genome2", "Genome3", ...], ...}
 TAXONOMY_TO_GENOMES = collections.defaultdict(list)
+
 # {"full taxonomy up to the selected level": {"domain1 (domain combination 1)": 21, "domain2(or domain comb 2)": 852, ...}, ...}
+# {"full taxonomy up to the selected level": 
+# #{"domain1 (domain comb 1)": {"raw_count":2, "raw_normto_genomenum":0.002, "normby_genomesize_normto_genomenum":0.025, 
+# # "normby_protcount_normto_genomenum": 0.00005}, "domain2(or domain comb 2)": {...}, ...}, ...}
 TAXONOMY_TO_STATISTICS = collections.defaultdict(dict)
 
 def initialize(argv):
@@ -63,10 +67,12 @@ def process_input():
 	with open(INPUT_FILE1, "r") as iFile1:
 		for line in iFile1:
 			# domain_c can be a signle domain (GAF_3) or a domain combination (ex, GAF_3,PAS_3,PAS_4,hole)
-			genomeID, domain_c, count = line.strip().split("\t")[:3]
+			genomeID, domain_c, count, normby_genomesize, normby_protcount = line.strip().split("\t")
 			# {"GenomeID1": (TIM, 5), ... }
 			# Can be domain combination to counts: ("TIM,PIR", 62), ...
-			GENOME_TO_DOMAIN[genomeID].append((domain_c, int(count)))
+			# int(count) below is repeated to make the analysis in the process_domains_per_taxon() function
+			# straightforward
+			GENOME_TO_DOMAIN[genomeID].append((domain_c, int(count), int(count), float(normby_genomesize), float(normby_protcount)))
 	with open(INPUT_FILE2, "r") as iFile2:
 		for line in iFile2:
 			record = line.strip().split("\t")
@@ -79,20 +85,31 @@ def process_input():
 # G1 Domcomb2 12
 # d__Archaea;p__Halobacteriota;c__Methanosarcinia;o__Methanosarcinales;f__Methanosarcinaceae;g__Methanosarcina;s__Methanosarcina mazei
 def process_domains_per_taxon():
-	for genome, domain_counts in GENOME_TO_DOMAIN.items():
+	TAXONOMY_TO_STATISTICS
+	counts = collections.OrderedDict({"raw_count":0, "raw_normto_genomenum":0, "normby_genomesize_normto_genomenum":0, "normby_protcount_normto_genomenum": 0})
+	for genomeID, domain_counts in GENOME_TO_DOMAIN.items():
 		for element in domain_counts:
-			taxonomy = GENOME_TO_TAXONOMY[genome]
+			taxon = GENOME_TO_TAXONOMY[genomeID]
 			domain_c = element[0]
-			if  domain_c in TAXONOMY_TO_STATISTICS[taxonomy]:
-				TAXONOMY_TO_STATISTICS[taxonomy][domain_c] += element[1]
+			if  domain_c in TAXONOMY_TO_STATISTICS[taxon]:
+				for index, count_type in enumerate(counts.keys()):
+					TAXONOMY_TO_STATISTICS[taxon][domain_c][count_type] += element[index+1]
 			else:
-				TAXONOMY_TO_STATISTICS[taxonomy][domain_c] = element[1]
+				TAXONOMY_TO_STATISTICS[taxon][domain_c] = counts.copy()
+				for index, count_type in enumerate(counts.keys()):
+					TAXONOMY_TO_STATISTICS[taxon][domain_c][count_type] = element[index+1]
 
-def write_to_file():
+def normalize_counts_and_save():
 	with open(OUTPUT_FILE1, "w") as oFile:
-		for taxon, domain_counts in TAXONOMY_TO_STATISTICS.items():
-			for domain_c, count in domain_counts.items():
-				oFile.write("\t".join([taxon, domain_c, str(count)]) + "\n")
+		for taxon, domain_dict in TAXONOMY_TO_STATISTICS.items():
+			numOfGenomesInTaxon = len(TAXONOMY_TO_GENOMES[taxon])
+			for domain_c, count_dict in domain_dict.items():
+				counts_list = []
+				for count_type in count_dict.keys():
+					if not count_type == "raw_count":
+						count_dict[count_type] = count_dict[count_type]/float(numOfGenomesInTaxon)
+					counts_list.append(str(count_dict[count_type]))
+			oFile.write("\t".join([taxon, domain_c, "\t".join(counts_list)]) + "\n")
 
 def tax_level_selector(level):
 	if level == "species":
@@ -115,6 +132,6 @@ def main(argv):
 	initialize(argv)
 	process_input()
 	process_domains_per_taxon()
-	write_to_file()
+	normalize_counts_and_save()
 
 main(sys.argv)

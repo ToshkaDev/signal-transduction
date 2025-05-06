@@ -42,7 +42,8 @@ initialize_scripts_and_folders() {
 # Obtain and perform first step analysis of two-component systems
 obtain() {
 	echo "Starting 'obtain' ..."
-	# Fetch TCS for Archaea:
+	echo "Fetching two-component systems (TCS) from MiST ..."
+	echo "Fetching archaeal ..."
 	for db in ${DB[@]}; do
 		./pipeline/${OBTAIN} -i ${ARCH_FILE%.*}_$db.tsv \
 			-f ${OFOLDER}/his_kinases_archaea_$db.tsv \
@@ -53,7 +54,7 @@ obtain() {
 		cat ${OFOLDER}/resp_regulators_archaea_$db.tsv >> ${OFOLDER}/resp_regulators_archaea_all.tsv
 	done
 
-	# Fetch TCS for Bacteria:
+	echo "Fetching bacterial two-component systems ..."
 	for db in ${DB[@]}; do
 		./pipeline/${OBTAIN} -i ${BACT_FILE%.*}_$db.tsv \
 			-f ${OFOLDER}/his_kinases_bacteria_$db.tsv \
@@ -68,7 +69,7 @@ obtain() {
 # Analyze two-component systems per genome and per taxonnomic level
 analyze() {
 	echo "Starting 'analyze' ..."
-	## Analyze tcs per genome
+	echo "Analyzing two-component systems per genome ..."
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}
 		./pipeline/${ANALYZEG} -i ${efile} -s ./input/MiST_domains_18.tsv \
@@ -79,12 +80,11 @@ analyze() {
 		-l ${AGFOLDER}/${edfile%.*}_superfamily_comb.tsv
 	done
 
-	## Analyze tcs per taxon using the files genrated at the previous step
+	echo "Analyzing two-component systems per taxon using the files generated at the previous step ..."
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*.tsv; do
 			edfile=${efile##*/}
-			#./pipeline/${ANALYZET} -i ${efile} -s ./input/gtdb_taxonomy/*.tsv \
 			./pipeline/${ANALYZET} -i ${efile} -s ./input/gtdb_metadata/ar53_bac120_metadata_r214_ed.tsv \
 			-f ${ATFOLDER}/${edfile%.*}_$level.tsv \
 			-t $level

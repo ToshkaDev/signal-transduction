@@ -28,9 +28,9 @@ GENOME_TO_TAXONOMY = {}
 TAXONOMY_TO_GENOMES = collections.defaultdict(list)
 
 # {"full taxonomy up to the selected level": {"domain1 (domain combination 1)": 21, "domain2(or domain comb 2)": 852, ...}, ...}
-# {"full taxonomy up to the selected level": 
-# #{"domain1 (domain comb 1)": {"raw_count":2, "raw_normto_genomenum":0.002, "normby_genomesize_normto_genomenum":0.025, 
-# # "normby_protcount_normto_genomenum": 0.00005}, "domain2(or domain comb 2)": {...}, ...}, ...}
+# {"full taxonomy up to the selected level": {"domain1 (domain comb 1)": 
+# {"raw_count":2, "raw_normto_genomenum":0.002, "normby_genomesize_normto_genomenum":0.025, 
+#  "normby_protcount_normto_genomenum": 0.00005}, "domain2(or domain comb 2)": {...}, ...}, ...}
 TAXONOMY_TO_STATISTICS = collections.defaultdict(dict)
 
 def initialize(argv):
@@ -63,7 +63,6 @@ def initialize(argv):
 		sys.exit(2)
 
 def process_input():
-	global GENOME_TO_DOMAIN
 	with open(INPUT_FILE1, "r") as iFile1:
 		for line in iFile1:
 			# domain_c can be a signle domain (GAF_3) or a domain combination (ex, GAF_3,PAS_3,PAS_4,hole)
@@ -85,8 +84,8 @@ def process_input():
 # G1 Domcomb2 12
 # d__Archaea;p__Halobacteriota;c__Methanosarcinia;o__Methanosarcinales;f__Methanosarcinaceae;g__Methanosarcina;s__Methanosarcina mazei
 def process_domains_per_taxon():
-	TAXONOMY_TO_STATISTICS
 	counts = collections.OrderedDict({"raw_count":0, "raw_normto_genomenum":0, "normby_genomesize_normto_genomenum":0, "normby_protcount_normto_genomenum": 0})
+	counter = 1
 	for genomeID, domain_counts in GENOME_TO_DOMAIN.items():
 		for element in domain_counts:
 			taxon = GENOME_TO_TAXONOMY[genomeID]
@@ -109,7 +108,7 @@ def normalize_counts_and_save():
 					if not count_type == "raw_count":
 						count_dict[count_type] = count_dict[count_type]/float(numOfGenomesInTaxon)
 					counts_list.append(str(count_dict[count_type]))
-			oFile.write("\t".join([taxon, domain_c, "\t".join(counts_list)]) + "\n")
+				oFile.write("\t".join([taxon, domain_c, "\t".join(counts_list)]) + "\n")
 
 def tax_level_selector(level):
 	if level == "species":

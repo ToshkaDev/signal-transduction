@@ -21,8 +21,10 @@ prepare_files() {
 	echo "Decompress GTDB metadata file" 
 	unzip ./input/gtdb_metadata/ar53_bac120_metadata_r214.tsv.zip -d ./input/gtdb_metadata
 	
-	echo "Unpack and decompress the results of querying mistdb.com to obtain domain information for analyzed genomes" 
-	tar xvf ./results/obtain_and_process_tcs/output.tar.gz -C ./results/obtain_and_process_tcs/
+	if [ -f ./results/obtain_and_process_tcs/output.tar.gz ]; then
+		echo "Unpack and decompress the results of querying mistdb.com to obtain domain information for analyzed genomes" 
+		tar xvf ./results/obtain_and_process_tcs/output.tar.gz -C ./results/obtain_and_process_tcs/
+	fi
 }
 
 initialize_scripts_and_folders() {
@@ -39,30 +41,34 @@ initialize_scripts_and_folders() {
 	check_create "${ATFOLDER}"
 }
 
-# Obtain and perform first step analysis of two-component systems
+# Obtain and perform first step analysis of two-component systems (hk - histidine kinase, rr - response regulator)
 obtain() {
 	echo "Starting 'obtain' ..."
 	echo "Fetching two-component systems (TCS) from MiST ..."
 	echo "Fetching archaeal ..."
 	for db in ${DB[@]}; do
-		./pipeline/${OBTAIN} -i ${ARCH_FILE%.*}_$db.tsv \
-			-f ${OFOLDER}/his_kinases_archaea_$db.tsv \
-			-s ${OFOLDER}/resp_regulators_archaea_$db.tsv \
-			-d $db
-		# put results from $DB into one file for each his_kinase and resp_regulators
-		cat ${OFOLDER}/his_kinases_archaea_$db.tsv >> ${OFOLDER}/his_kinases_archaea_all.tsv
-		cat ${OFOLDER}/resp_regulators_archaea_$db.tsv >> ${OFOLDER}/resp_regulators_archaea_all.tsv
+		./pipeline/${OBTAIN} \
+			-d mistdb \
+			-i ${ARCH_FILE%.*}_$db.tsv \
+			-f ${OFOLDER}/hk_archaea_$db.tsv \
+			-s ${OFOLDER}/rr_archaea_$db.tsv \
+			-b $db
+		# put results from $DB into one file for each his kinase (hk) and resp regulators (rr)
+		cat ${OFOLDER}/hk_archaea_$db.tsv >> ${OFOLDER}/hk_archaea_all.tsv
+		cat ${OFOLDER}/rr_archaea_$db.tsv >> ${OFOLDER}/rr_archaea_all.tsv
 	done
 
 	echo "Fetching bacterial two-component systems ..."
 	for db in ${DB[@]}; do
-		./pipeline/${OBTAIN} -i ${BACT_FILE%.*}_$db.tsv \
-			-f ${OFOLDER}/his_kinases_bacteria_$db.tsv \
-			-s ${OFOLDER}/resp_regulators_bacteria_$db.tsv \
-			-d $db
-		# put results from $DB into one file for each his_kinase and resp_regulators
-		cat ${OFOLDER}/his_kinases_bacteria_$db.tsv >> ${OFOLDER}/his_kinases_bacteria_all.tsv
-		cat ${OFOLDER}/resp_regulators_bacteria_$db.tsv >> ${OFOLDER}/resp_regulators_bacteria_all.tsv
+		./pipeline/${OBTAIN} \
+			-d mistdb \
+			-i ${BACT_FILE%.*}_$db.tsv \
+			-f ${OFOLDER}/hk_bacteria_$db.tsv \
+			-s ${OFOLDER}/rr_bacteria_$db.tsv \
+			-b $db
+		# put results from $DB into one file for each his kinase (hk) and resp regulators (rr)
+		cat ${OFOLDER}/hk_bacteria_$db.tsv >> ${OFOLDER}/hk_bacteria_all.tsv
+		cat ${OFOLDER}/rr_bacteria_$db.tsv >> ${OFOLDER}/rr_bacteria_all.tsv
 	done
 }
 
@@ -72,22 +78,40 @@ analyze() {
 	echo "Analyzing two-component systems per genome ..."
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}
-		./pipeline/${ANALYZEG} -i ${efile} -s ./input/MiST_domains_18.tsv \
-		-t ./input/gtdb_metadata/ar53_bac120_metadata_r214_ed.tsv \
-		-f ${AGFOLDER}/${edfile%.*}_domains.tsv \
-		-g ${AGFOLDER}/${edfile%.*}_domain_comb.tsv \
-		-k ${AGFOLDER}/${edfile%.*}_superfamily.tsv \
-		-l ${AGFOLDER}/${edfile%.*}_superfamily_comb.tsv
+		# one of: 'hk', 'rr', 'ocp'
+		ptype=${edfile%%_*}
+		./pipeline/${ANALYZEG} \
+			-i ${efile} \
+			-s ./input/MiST_domains_18.tsv \
+			-d mistdb \
+			-p $ptype \
+			-t ./input/gtdb_metadata/ar53_bac120_metadata_r214_ed.tsv \
+			-f ${AGFOLDER}/${edfile%.*}_domains.tsv \
+			-g ${AGFOLDER}/${edfile%.*}_domain_comb.tsv \
+			-k ${AGFOLDER}/${edfile%.*}_superfamily.tsv \
+			-l ${AGFOLDER}/${edfile%.*}_superfamily_comb.tsv
 	done
 
 	echo "Analyzing two-component systems per taxon using the files generated at the previous step ..."
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*.tsv; do
+			# ./results/hk_archaea_all_superfamily_comb.tsv -> hk_archaea_all_superfamily_comb.tsv
 			edfile=${efile##*/}
-			./pipeline/${ANALYZET} -i ${efile} -s ./input/gtdb_metadata/ar53_bac120_metadata_r214_ed.tsv \
-			-f ${ATFOLDER}/${edfile%.*}_$level.tsv \
-			-t $level
+			# hk_archaea_all_superfamily_comb.tsv -> hk
+			ptype=${edfile%%_*}
+			# hk_archaea_all_superfamily_comb.tsv -> hk_archaea_all_superfamily_comb
+			subname=${edfile%.*}
+			# hk_archaea_all_superfamily_comb -> superfamily_comb
+			ctype=${subname#*all}
+			./pipeline/${ANALYZET} \
+				-i ${efile} \
+				-s ./input/gtdb_metadata/ar53_bac120_metadata_r214_ed.tsv \
+				-d mistdb \
+				-p $ptype \
+				-c $ctype \
+				-f ${ATFOLDER}/${edfile%.*}_$level.tsv \
+				-t $level
 		done
 	done	
 }

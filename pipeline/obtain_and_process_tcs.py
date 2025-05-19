@@ -1,37 +1,39 @@
 #!/usr/bin/python3
 import sys, getopt
-import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error
 import json
 import collections
-import os.path
 import time
 import logging
 
-OUT_FILE_HEADERS = ["Genome_id", "NCBI_id", "MiST_id", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
+OUT_FILE_HEADERS = ["Genome_version","Genome_accession", "NCBI_id", "MiST_id", "protein_type", "source", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
 
 USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases and response regulators in genomes. \n" + \
 	"It outputs complete domain information and other data in tabulated format for both histidine kinases and response regualtors separately. \n" + \
 	"Output fields: " + ", ".join(OUT_FILE_HEADERS).rstrip(", \n") + " \n" + \
 	"python 	" + sys.argv[0] + '''
 	-h || --help               - help
+	-d || --dsource            - data source: mistdb (MiST; default) or rmodels (Pfam HMMs with relaxed thresholds) 
 	-i || --ifile              - input file
 	-f || --ffile              - first output file
 	-s || --sfile              - second output file
-	-d || --database           - specify database: mist or mist-mags
+	-b || --dbase              - specify database: mist or mist-mags
 	-c || --continue           - start a new analysis or continue with allready existing provided files.
 	                             Users are simply expected to specify -c (--continue) without provinding arguments.
 	                             Default is without this paraeter specified, i.e. start a new analysis.
 '''
 
 #Variables controlled by the script parameters
+SOURCE = "mistdb"
+SOURCE_CHOICES = {"mistdb", "rmodels"}
 INPUT_FILE = None
 OUTPUT_FILE1 = "output_HK.tsv"
 OUTPUT_FILE2 = "output_RR.tsv"
 CONTINUE = False
 
 #Variables set within the script
-PROTEIN_TYPES = ["sensKinase", "respReg"]
-PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPES[0]: OUTPUT_FILE1, PROTEIN_TYPES[1]: OUTPUT_FILE2}
+PROTEIN_TYPE_CHOICES = ["hk", "rr", "ocp"]
+PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2}
 GENOME_VERSIONS = None
 TIMEOUT_FILE = "timeout_genomes.txt"
 DATABASE = "mist"
@@ -53,9 +55,9 @@ HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
 RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
 
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE, SOURCE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:f:s:d:c",["help", "ifile=", "ffile=", "sfile=", "database=", "continue"])
+		opts, args = getopt.getopt(argv[1:],"hd:i:f:s:b:c",["help", "dsource=", "ifile=", "ffile=", "sfile=", "dbase=", "continue"])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -66,13 +68,16 @@ def initialize(argv):
 			if opt in ("-h", "--help"):
 				print(USAGE)
 				sys.exit()
+			elif opt in ("-d", "--dsource"):
+				if str(arg).strip() in SOURCE_CHOICES:
+					SOURCE = str(arg).strip()
 			elif opt in ("-i", "--ifile"):
 				INPUT_FILE = str(arg).strip()
 			elif opt in ("-f", "--ffile"):
 				OUTPUT_FILE1 = str(arg).strip()
 			elif opt in ("-s", "--sfile"):
 				OUTPUT_FILE2 = str(arg).strip()
-			elif opt in ("-d", "--database"):
+			elif opt in ("-b", "--dbase"):
 				DATABASE = str(arg).strip()
 				if DATABASE not in DATABASE_TO_URL:
 					print ("Database should be one of the following: " + ", ".join(DATABASE_TO_URL.keys()))
@@ -83,7 +88,7 @@ def initialize(argv):
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
 	#Initialize the dictionary with the provided files
-	PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPES[0]: OUTPUT_FILE1, PROTEIN_TYPES[1]: OUTPUT_FILE2}
+	PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2}
 	if not CONTINUE:
 		#Create ouput files and write headers:
 		for oFile in PROTEIN_TYPE_TO_OUTFILE.values():
@@ -179,10 +184,10 @@ def processDomains():
 				print(" ".join(["Genome Number:", str(genomeNumber), "   Genome ID:", genomeVersion]))
 				genomeNumber+=1
 				listOfSignalGeneLists = []
-				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HK), PROTEIN_TYPES[0]))
-				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HHK), PROTEIN_TYPES[0]))
-				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_RR), PROTEIN_TYPES[1]))
-				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HRR), PROTEIN_TYPES[1]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HK), PROTEIN_TYPE_CHOICES[0]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HHK), PROTEIN_TYPE_CHOICES[0]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_RR), PROTEIN_TYPE_CHOICES[1]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HRR), PROTEIN_TYPE_CHOICES[1]))
 				for signalGeneList in listOfSignalGeneLists:
 					for gene in signalGeneList[0]:
 						prepareDomains(gene, genomeVersion, signalGeneList[1])
@@ -221,8 +226,9 @@ def prepareDomains(gene, genomeVersion, proteinType):
 			domainsFilteredNamesUniqueCountsStr = ",".join(["{}:{}".format(domain, domainToCount[domain]) for domain in sortedDomainNames])
 
 			#Save everything to a file:
+			genomeAccession = genomeVersion.split(".")[0]
 			with open(PROTEIN_TYPE_TO_OUTFILE[proteinType], "a") as outputFile:
-				outputRecord = "\t".join([genomeVersion, refseqVersion, geneStableId, proteinLength, domainArchitecture.rstrip(","), ",".join(domainArchitectureSensOrRegDomsOnly), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
+				outputRecord = "\t".join([genomeVersion, genomeAccession, refseqVersion, geneStableId, proteinType, SOURCE, proteinLength, domainArchitecture.rstrip(","), ",".join(domainArchitectureSensOrRegDomsOnly), domainsFilteredNamesUniqueCountsStr, domainsFilteredNamesUniqueStr])
 				outputFile.write(outputRecord + "\n")
 
 #### Process holes and domains BEGIN ####

@@ -28,7 +28,6 @@ prepare_files() {
 }
 
 obtain_and_prepare_gtdb_files() {
-	./input/gtdb_metadata/ar53_bac120_metadata_r214.tsv.zip
 	VERSION=r214
 	COMBINED_FILE=./input/gtdb_metadata/ar_bac_metadata
 
@@ -39,7 +38,7 @@ obtain_and_prepare_gtdb_files() {
 		METADATA_BAC_FILE=./input/gtdb_metadata/bac_metadata
 		EXT=.tar.gz
 
-		echo "Downloading the Genome Taxonomy Database (version #{VERSION}) metadata files ..."
+		echo "Downloading the Genome Taxonomy Database (version ${VERSION}) metadata files ..."
 		wget -O ${METADA_AR_FILE}$EXT ${METADA_AR_LINK}
 		wget -O ${METADATA_BAC_FILE}$EXT ${METADATA_BAC_LINK}
 
@@ -47,6 +46,7 @@ obtain_and_prepare_gtdb_files() {
 		tar xOvf ${METADA_AR_FILE}$EXT | sed '1d' > ${METADA_AR_FILE}.tsv
 		tar xOvf ${METADATA_BAC_FILE}$EXT | sed '1d' > ${METADATA_BAC_FILE}.tsv
 
+		echo "Preparing metadata files ..."
 		# Combine both files
 		cat ${METADA_AR_FILE}.tsv ${METADATA_BAC_FILE}.tsv > ${COMBINED_FILE}_${VERSION}.tsv
 
@@ -56,7 +56,6 @@ obtain_and_prepare_gtdb_files() {
 
 		# Extract from the GTDB metadat file only those records that comrreposnd to genomes in repr_set_v214_Oct2024_MiST_MetaMiST_s.tsv file:
 		# join based on the first field (genome version field) of the epr_set_v214_Oct2024_MiST_MetaMiST_s.tsv
-		
 		join -1 1 -t $'\t' ${REPR_FILE%.*}_s.tsv ${COMBINED_FILE}_${VERSION}_s.tsv > ${COMBINED_FILE}_${VERSION}.tsv
 
 		# Extract needed fields, remove GB_ and RS_ parts from the GTDB genome ID field ($1), and add the genome_accession field (gacc[1]).
@@ -89,7 +88,7 @@ initialize_scripts_and_folders() {
 
 # Obtain and perform first step analysis of two-component systems (hk - histidine kinase, rr - response regulator)
 obtain() {
-	echo "Starting 'obtain' ..."
+	echo "Started 'obtain' ..."
 	echo "Fetching two-component systems (TCS) from MiST ..."
 	echo "Fetching archaeal ..."
 	for db in ${DB[@]}; do
@@ -120,8 +119,8 @@ obtain() {
 
 # Analyze two-component systems per genome and per taxonnomic level
 analyze() {
-	echo "Starting 'analyze' ..."
-	echo "Analyzing two-component systems per genome ..."
+	echo "Started 'analyze' ..."
+	echo "Analyzing two-component systems by genome ..."
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}
 		# One of: 'hk', 'rr', 'ocp'
@@ -138,7 +137,7 @@ analyze() {
 			-l ${AGFOLDER}/${edfile%.*}_superfamily_comb.tsv
 	done
 
-	echo "Analyzing two-component systems per taxon using the files generated at the previous step ..."
+	echo "Analyzing two-component systems by taxa using files generated in the previous step ..."
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*.tsv; do

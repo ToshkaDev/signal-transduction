@@ -20,7 +20,7 @@ USAGE = "\nThe script calculates domain and domain combination prevalences in ge
 SOURCE = "mistdb"
 SOURCE_CHOICES = {"mistdb", "rmodels"}
 PROTEIN_TYPE = "hk"
-PROTEIN_TYPE_CHOICES = {"hk", "rr", "ocp"}
+PROTEIN_TYPE_CHOICES = {"hk": "Histidine Kinase", "rr": "Response Regulator", "ocp": "One component protein"}
 DOMAIN_COMB_TYPES = {"domain": "domain", "domain_comb": "domain_comb", "superfamily": "superfamily", "superfamily_comb": "superfamily_comb"}
 INPUT_FILE1 = None
 INPUT_FILE2 = None
@@ -89,7 +89,6 @@ def processInput():
 			if records[0] != "accession":
 				GENOME_TO_SIZE[records[0]] = (int(records[2]), int(records[3]))
 
-
 # domain_to_protein_count = {"dCache_1":5, "GAF": 2, ...}. This means that in a given genome dCache was found in 5 proteins and GAF in 2 of a considered system.
 # This does not count how many times a domain is present in a single protein.
 # domain_comb_to_protein_count = {"MEDS,PAS,PAS_3,PAS_4,PAS_9":2}. This means that a particualr domain combiation was found in 2 protins in the given genome
@@ -104,14 +103,16 @@ def findDomainAndCombPrevalenceInProteins():
 	superfamily_comb_to_protein_count = collections.defaultdict(int)
 
 	Genome_id_prev = None
+	protein_counter = 0
 	with open(INPUT_FILE1, "r") as iFile:
+		print("Started analyzing",PROTEIN_TYPE_CHOICES[PROTEIN_TYPE]+"s from the file:", INPUT_FILE1, "\n")
 		for protein in iFile:
-			# filed 6 has only uniqe domain names with indicated counts showing how many times a given domain is present in a given protein.
+			# Field 6 has only unique domain names with indicated counts showing how many times a given domain is present in a given protein.
 			# Domains are sorted alphabetically
 			# Ex., HATPase_c:1,HisKA_2:1,MEDS:1,PAS:1,PAS_3:2,PAS_4:1,PAS_9:1 
 			protein_record = protein.strip().split("\t")
 			Genome_id = protein_record[0]
-			domain_counts = protein_record[6].replace("<", "").replace(">", "")
+			domain_counts = protein_record[9].replace("<", "").replace(">", "")
 			# if records of a new genome began, save the previous genome data and update variables
 			if Genome_id != Genome_id_prev:
 				if Genome_id_prev:
@@ -149,6 +150,13 @@ def findDomainAndCombPrevalenceInProteins():
 
 			# count this superfamily combination
 			superfamily_comb_to_protein_count[",".join(sorted(domains_and_superfamilies))]+=1
+			
+			# Print current info
+			protein_counter+=1
+			if (protein_counter % 20000 == 0):
+				print("Analyzed",  protein_counter, PROTEIN_TYPE_CHOICES[PROTEIN_TYPE]+"s")
+		# Print final info
+		print("\n******* Analyzed in total",  protein_counter, PROTEIN_TYPE_CHOICES[PROTEIN_TYPE]+"s *******\n")
 
 def writeToFile(dataDict, Genome_id, outputFile, domain_comb_type):
 	if Genome_id != "Genome_id":

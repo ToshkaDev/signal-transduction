@@ -84,10 +84,10 @@ def processInput():
 			MIST_DOMAIN_TO_SUPERFAMILY[domain_info[2].strip()] = domain_info[3].strip()
 	with open(INPUT_FILE3, "r") as iFile3:
 		for line in iFile3:
-			#$1 - genome accession, $2 - genome size, $3 - GTDB taxonomy, $4 - protein counts
+			#$0 - genome version, $1 - genome accession, $2 - genome size, $3 - protein counts, $4 - GTDB taxonomy, $5 - NCBI taxonomy
 			records = line.split("\t")
 			if records[0] != "accession":
-				GENOME_TO_SIZE["_".join(records[0].split("_")[1:])] = (int(records[1]), int(records[3]))
+				GENOME_TO_SIZE[records[0]] = (int(records[2]), int(records[3]))
 
 
 # domain_to_protein_count = {"dCache_1":5, "GAF": 2, ...}. This means that in a given genome dCache was found in 5 proteins and GAF in 2 of a considered system.

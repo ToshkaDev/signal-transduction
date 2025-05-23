@@ -104,9 +104,10 @@ def process_input():
 			GENOME_TO_DOMAIN[genomeID].append((domain_c, int(count), int(count), float(normby_genomesize), float(normby_protcount)))
 	with open(INPUT_FILE2, "r") as iFile2:
 		for line in iFile2:
+			#$0 - genome version, $1 - genome accession, $2 - genome size, $3 - protein counts, $4 - GTDB taxonomy, $5 - NCBI taxonomy
 			record = line.strip().split("\t")
-			genomeID = "_".join(record[0].split("_")[1:])
-			taxonomy = ";".join(record[2].split(";")[:TAXONOMY_LEVEL])
+			genomeID = record[0]
+			taxonomy = ";".join(record[4].split(";")[:TAXONOMY_LEVEL])
 			taxonomy = re.sub(regex, "", taxonomy)
 			GENOME_TO_TAXONOMY[genomeID] = taxonomy
 			TAXONOMY_TO_GENOMES[taxonomy].append(genomeID)

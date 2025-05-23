@@ -8,6 +8,7 @@ check_create() {
 }
 
 prepare_files() {
+	echo "Started downloading and preparing files ..."
 	BACT_FILE=${REPR_FILE%.*}_bact.tsv
 	ARCH_FILE=${REPR_FILE%.*}_arch.tsv
 
@@ -88,9 +89,8 @@ initialize_scripts_and_folders() {
 
 # Obtain and perform first step analysis of two-component systems (hk - histidine kinase, rr - response regulator)
 obtain() {
-	echo "Started 'obtain' ..."
-	echo "Fetching two-component systems (TCS) from MiST ..."
-	echo "Fetching archaeal ..."
+	echo "1. Fetching two-component systems (TCS) from MiST ..."
+	echo "1.1. Fetching archaeal two-component systems ..."
 	for db in ${DB[@]}; do
 		./pipeline/${OBTAIN} \
 			-d mistdb \
@@ -103,7 +103,7 @@ obtain() {
 		sed '1d' ${OFOLDER}/rr_archaea_$db.tsv >> ${OFOLDER}/rr_archaea_all.tsv
 	done
 
-	echo "Fetching bacterial two-component systems ..."
+	echo "1.2. Fetching bacterial two-component systems ..."
 	for db in ${DB[@]}; do
 		./pipeline/${OBTAIN} \
 			-d mistdb \
@@ -115,12 +115,26 @@ obtain() {
 		sed '1d' ${OFOLDER}/hk_bacteria_$db.tsv >> ${OFOLDER}/hk_bacteria_all.tsv
 		sed '1d' ${OFOLDER}/rr_bacteria_$db.tsv >> ${OFOLDER}/rr_bacteria_all.tsv
 	done
+	cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv > ${OFOLDER}/per_protein_combined_db.tsv
 }
 
-# Analyze two-component systems per genome and per taxonnomic level
 analyze() {
-	echo "Started 'analyze' ..."
-	echo "Analyzing two-component systems by genome ..."
+	if [ -z "$(ls -A $AGFOLDER)" ]; then
+		analyze_systems_by_genome
+	else
+		echo "Folder '$AGFOLDER' is not empty. Analysis of two-component systems by genome will not run. Empty the folder before running the pipeline."
+	fi
+
+	if [ -z "$(ls -A $ATFOLDER)" ]; then
+		analyze_systems_by_taxon
+	else
+		echo "Folder '$ATFOLDER' is not empty.  Analysis of two-component systems by taxon will not run. Empty the folder before running the pipeline."
+	fi
+}
+
+# Analyze two-component systems by genome
+analyze_systems_by_genome() {
+	echo "2. Analyzing two-component systems by genome ..."
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}
 		# One of: 'hk', 'rr', 'ocp'
@@ -136,8 +150,12 @@ analyze() {
 			-k ${AGFOLDER}/${edfile%.*}_superfamily.tsv \
 			-l ${AGFOLDER}/${edfile%.*}_superfamily_comb.tsv
 	done
+	cat ${AGFOLDER}/*.tsv > ${AGFOLDER}/per_genome_combined_db.tsv
+}
 
-	echo "Analyzing two-component systems by taxa using files generated in the previous step ..."
+# Analyze two-component systems by taxonomic level
+analyze_systems_by_taxon() {
+	echo "3. Analyzing two-component systems by taxa using files generated in the previous step ..."
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*.tsv; do
@@ -158,7 +176,8 @@ analyze() {
 				-f ${ATFOLDER}/${edfile%.*}_$level.tsv \
 				-t $level
 		done
-	done	
+	done
+	cat ${ATFOLDER}/*.tsv > ${ATFOLDER}/per_taxon_combined_db.tsv
 }
 
 prepare_files
@@ -166,5 +185,3 @@ initialize_scripts_and_folders
 # Run the process 'obtain' only if $OFOLDER is empty
 [ -z "$(ls -A $OFOLDER)" ] && obtain
 analyze
-
-

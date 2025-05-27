@@ -55,7 +55,7 @@ obtain_and_prepare_gtdb_files() {
 		cut -f 1 ${REPR_FILE} | sort  > ${REPR_FILE%.*}_s.tsv
 		sort -k 1 ${COMBINED_FILE}_${VERSION}.tsv > ${COMBINED_FILE}_${VERSION}_s.tsv
 
-		# Extract from the GTDB metadat file only those records that comrreposnd to genomes in repr_set_v214_Oct2024_MiST_MetaMiST_s.tsv file:
+		# Extract from the GTDB metadat file only those records that correspond to genomes in repr_set_v214_Oct2024_MiST_MetaMiST_s.tsv file:
 		# join based on the first field (genome version field) of the epr_set_v214_Oct2024_MiST_MetaMiST_s.tsv
 		join -1 1 -t $'\t' ${REPR_FILE%.*}_s.tsv ${COMBINED_FILE}_${VERSION}_s.tsv > ${COMBINED_FILE}_${VERSION}.tsv
 
@@ -64,10 +64,13 @@ obtain_and_prepare_gtdb_files() {
 		# The resulting file will be used in the pipeline.
 		awk 'BEGIN{FS="\t"; OFS="\t"} {split($1, gacc2, "_"); version=gacc2[2]"_"gacc2[3]; split(version, gacc, "."); print version,gacc[1],$14,$89,$17,$79}' ${COMBINED_FILE}_${VERSION}.tsv > ${COMBINED_FILE}_${VERSION}_p.tsv
 
-		# Prepare a file for the database: replace ';' by tabs, remove from GTDB taxonomy 'd__', 'p__', etc. paret (see this d__Archaea;p__Nanoarchaeota;...).
+		# Prepare a file for the database: add headers, replace ';' by tabs, remove from GTDB taxonomy 'd__', 'p__', etc. paret (see this d__Archaea;p__Nanoarchaeota;...).
+		# sed 's/ //g' is needed because echo with the multiline string introduces a space with the string continuation at the new line (as a result of string formating by VS)
 		# The resuling file will be stored in the database.
-		sed -e 's/;/\t/g' -e 's/[[:alpha:]]__//g' ${COMBINED_FILE}_${VERSION}_p.tsv > ${COMBINED_FILE}_${VERSION}_db.tsv
-
+		echo $'genome_version\tgenome_accession\tgenome_size\tprotein_count\tgtdb_kingdom\tgtdb_phylum\tgtdb_class\tgtdb_order\tgtdb_family\t'\
+			$'gtdb_genus\tgtdb_species\tncbi_kingdom\tncbi_phylum\tncbi_class\tncbi_order\tncbi_family\tncbi_genus\tncbi_species' | sed 's/ //g' > ${COMBINED_FILE}_${VERSION}_db.tsv
+		sed -e 's/;/\t/g' -e 's/[[:alpha:]]__//g' ${COMBINED_FILE}_${VERSION}_p.tsv >> ${COMBINED_FILE}_${VERSION}_db.tsv
+		
 		# remove unused files 
 		rm ${METADA_AR_FILE}$EXT  ${METADATA_BAC_FILE}$EXT ${METADA_AR_FILE}.tsv ${METADATA_BAC_FILE}.tsv ${COMBINED_FILE}_${VERSION}_s.tsv ${COMBINED_FILE}_${VERSION}.tsv
 	fi
@@ -115,7 +118,12 @@ obtain() {
 		sed '1d' ${OFOLDER}/hk_bacteria_$db.tsv >> ${OFOLDER}/hk_bacteria_all.tsv
 		sed '1d' ${OFOLDER}/rr_bacteria_$db.tsv >> ${OFOLDER}/rr_bacteria_all.tsv
 	done
-	cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv > ${OFOLDER}/per_protein_combined_db.tsv
+
+	# Prepare the database file
+	echo $'genome\tgenome_accession\tncbi_protein_accession\tmist_protein_accession\tprotein_type\tsource\tprotein_length\t'\
+		$'domain_architecture\tsensors_or_regulators\tdomain_counts\tdomains' | sed 's/ //g' > ${OFOLDER}/per_protein_combined_db.tsv
+	cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
+
 }
 
 analyze() {
@@ -145,12 +153,16 @@ analyze_systems_by_genome() {
 			-d mistdb \
 			-p $ptype \
 			-t ${COMBINED_FILE}_${VERSION}_p.tsv \
-			-f ${AGFOLDER}/${edfile%.*}_domains.tsv \
-			-g ${AGFOLDER}/${edfile%.*}_domain_comb.tsv \
-			-k ${AGFOLDER}/${edfile%.*}_superfamily.tsv \
-			-l ${AGFOLDER}/${edfile%.*}_superfamily_comb.tsv
+			-f ${AGFOLDER}/${edfile%.*}_domains_p.tsv \
+			-g ${AGFOLDER}/${edfile%.*}_domain_comb_p.tsv \
+			-k ${AGFOLDER}/${edfile%.*}_superfamily_p.tsv \
+			-l ${AGFOLDER}/${edfile%.*}_superfamily_comb_p.tsv
 	done
-	cat ${AGFOLDER}/*.tsv > ${AGFOLDER}/per_genome_combined_db.tsv
+
+	# Prepare the database file
+	echo $'genome\tgenome_accession\tsource\tprotein_type\tdomains\tdomain_combination_type\tcount_raw\tcount_normalized_by_genome_size\t'\
+		$'count_normalized_by_total_proteins' | sed 's/ //g' > ${AGFOLDER}/per_genome_combined_db.tsv
+	cat ${AGFOLDER}/*p.tsv >> ${AGFOLDER}/per_genome_combined_db.tsv
 }
 
 # Analyze two-component systems by taxonomic level
@@ -158,7 +170,7 @@ analyze_systems_by_taxon() {
 	echo "3. Analyzing two-component systems by taxa using files generated in the previous step ..."
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
-		for efile in ${AGFOLDER}/*.tsv; do
+		for efile in ${AGFOLDER}/*p.tsv; do
 			# ./results/hk_archaea_all_superfamily_comb.tsv -> hk_archaea_all_superfamily_comb.tsv
 			edfile=${efile##*/}
 			# hk_archaea_all_superfamily_comb.tsv -> hk
@@ -173,11 +185,16 @@ analyze_systems_by_taxon() {
 				-d mistdb \
 				-p $ptype \
 				-c $ctype \
-				-f ${ATFOLDER}/${edfile%.*}_$level.tsv \
+				-f ${ATFOLDER}/${edfile%.*}_${level}_p.tsv \
 				-t $level
 		done
 	done
-	cat ${ATFOLDER}/*.tsv > ${ATFOLDER}/per_taxon_combined_db.tsv
+
+	# Prepare the database file
+	echo $'gtdb_taxonomy_string\tgtdb_taxonomy_last\tgtdb_taxonomy_rank\tsource\tprotein_type\tdomains\tdomain_combination_type\tcount_raw\t'\
+		$'count_normalized_by_total_genomes\tcount_normalized_by_genome_size_by_total_genomes\t'\
+		$'count_normalized_by_total_proteins_by_total_genomes' | sed 's/ //g' > ${ATFOLDER}/per_taxon_combined_db.tsv
+	cat ${ATFOLDER}/*p.tsv >> ${ATFOLDER}/per_taxon_combined_db.tsv
 }
 
 prepare_files

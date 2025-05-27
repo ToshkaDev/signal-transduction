@@ -215,7 +215,9 @@ def prepareDomains(gene, genomeVersion, proteinType):
 				domainName = domain["name"].lstrip("<").rstrip(">")
 				if domain["name"] != "hole" and domainName not in HIS_KINASE_CATAL_DOMAINS and domainName not in HIS_KINASE_DIM_DOMAINS and domainName not in RESPONSE_REG_DOMAINS:
 					domainArchitectureSensOrRegDomsOnly.append(domain["name"])
-
+			
+			if not domainArchitectureSensOrRegDomsOnly:
+				domainArchitectureSensOrRegDomsOnly.append("nodomain")
 			#Generate a set of unique domain names and domain to count uniformly sorted
 			#{'domain1': 1, 'domain2': 2}
 			domainToCount = collections.defaultdict(int)

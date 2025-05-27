@@ -200,7 +200,7 @@ def prepareDomains(gene, genomeVersion, proteinType):
 		domainsSorted = sorted(gene["Gene"]["Aseq"]["pfam31"], key=lambda x: x["ali_from"], reverse=False)
 		#if there are entities in domainsSorted
 		#if domainsSorted:
-		if len (domainsSorted) > 0:
+		if domainsSorted:
 			domainsFiltered = removeOverlapps(domainsSorted)
 			
 			refseqVersion = gene["Gene"]["version"]

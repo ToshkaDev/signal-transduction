@@ -144,6 +144,13 @@ def findDomainAndCombPrevalenceInProteins():
 					else:
 						superfamily_to_protein_count[domain]+=1
 						domains_and_superfamilies.append(domain)
+			# If not sensor domains in HKs or additional domains in RRs:
+			if not domains:
+				domain = "nodomain"
+				domain_to_protein_count[domain]+=1
+				domains.append(domain)
+				superfamily_to_protein_count[domain]+=1
+				domains_and_superfamilies.append(domain)
 
 			# count this domain combination
 			domain_comb_to_protein_count[",".join(sorted(domains))]+=1

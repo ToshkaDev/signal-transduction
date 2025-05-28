@@ -153,7 +153,7 @@ analyze_systems_by_genome() {
 			-d mistdb \
 			-p $ptype \
 			-t ${COMBINED_FILE}_${VERSION}_p.tsv \
-			-f ${AGFOLDER}/${edfile%.*}_domains_p.tsv \
+			-f ${AGFOLDER}/${edfile%.*}_domain_p.tsv \
 			-g ${AGFOLDER}/${edfile%.*}_domain_comb_p.tsv \
 			-k ${AGFOLDER}/${edfile%.*}_superfamily_p.tsv \
 			-l ${AGFOLDER}/${edfile%.*}_superfamily_comb_p.tsv
@@ -171,14 +171,16 @@ analyze_systems_by_taxon() {
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*p.tsv; do
-			# ./results/hk_archaea_all_superfamily_comb.tsv -> hk_archaea_all_superfamily_comb.tsv
+			# ./results/hk_archaea_all_superfamily_comb_p.tsv -> hk_archaea_all_superfamily_comb_p.tsv
 			edfile=${efile##*/}
+			# hk_archaea_all_superfamily_comb_p.tsv -> hk_archaea_all_superfamily_comb.tsv
+			edfile=${edfile%_*}.tsv
 			# hk_archaea_all_superfamily_comb.tsv -> hk
 			ptype=${edfile%%_*}
 			# hk_archaea_all_superfamily_comb.tsv -> hk_archaea_all_superfamily_comb
 			subname=${edfile%.*}
 			# hk_archaea_all_superfamily_comb -> superfamily_comb
-			ctype=${subname#*all}
+			ctype=${subname#*all_}
 			./pipeline/${ANALYZET} \
 				-i ${efile} \
 				-s ${COMBINED_FILE}_${VERSION}_p.tsv \

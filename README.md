@@ -46,7 +46,7 @@ cd signal-transduction
 ./analyze.sh
 ```
 
-The script will first check whether the initial long-running step has already been completed by examining the presence of files in **results/obtain_and_process_tcs/**. Based on this, it will either start the entire pipeline or skip the completed steps.
+The script will first check whether the initial long-running step has already been completed by examining the presence of files in **results/obtain_and_process_st/**. Based on this, it will either start the entire pipeline or skip the completed steps.
 
 ## Pipeline Steps
 
@@ -62,26 +62,26 @@ Input files include:
 - Signal transduction domain definitions from the <a href="https://mistdb.com/" target="_blank">MiST (Microbial Signal Transduction)</a> database
 - A metadata file from the <a href="https://gtdb.ecogenomic.org/" target="_blank">Genome Taxonomy Database (GTDB, release r214)</a>
 
-### 2. TCS Extraction and Processing (`obtain_and_process_tcs.py`)
+### 2. ST Extraction and Processing (`obtain_and_process_st.py`)
 
-- Fetches two-component systems from the MiST database using its API  
+- Fetches signal transduction systems (two-component and one-component) from the MiST database using its API  
 - Analyzes protein domain compositions and architectures  
 - Outputs tabulated results listing:
   - Genomes  
-  - Histidine kinases (HKs) and response regulators (RRs)  
+  - Histidine kinases (HKs), response regulators (RRs), and one-component systmes (OCP)  
   - Their protein domain compositions and architectures
 
-### 3. Genome-Level Analysis (`analyze_tcs_per_genome.py`)
+### 3. Genome-Level Analysis (`analyze_st_per_genome.py`)
 
-- Analyzes and reports domain composition statistics for HKs and RRs per genome  
+- Analyzes and reports domain composition statistics for HKs, RRs, and OCPs per genome  
 - Reports:
-  - Number and type of input domains in HKs  
+  - Number and type of input domains in HKs and OCPs  
   - Additional domains in RRs  
 - Normalizes statistics by genome size and total number of encoded proteins
 
-### 4. Taxonomy-Level Analysis (`analyze_tcs_per_taxon.py`)
+### 4. Taxonomy-Level Analysis (`analyze_st_per_taxon.py`)
 
-- Analyzes domain composition statistics for HKs and RRs at each taxonomic level:
+- Analyzes domain composition statistics for HKs, RRs, and OCPs at each taxonomic level:
   - Species  
   - Genus  
   - Family  

@@ -6,7 +6,7 @@ import collections
 import time
 import logging
 
-OUT_FILE_HEADERS = ["Genome_version","Genome_accession", "NCBI_id", "MiST_id", "protein_type", "source", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
+OUT_FILE_HEADERS = ["Genome_version", "Genome_accession", "NCBI_id", "MiST_id", "protein_type", "source", "protein_length", "domain_architecture", "sensors_or_regulators", "domain_counts", "domain_combinations", "\n"]
 
 USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases and response regulators in genomes. \n" + \
 	"It outputs complete domain information and other data in tabulated format for both histidine kinases and response regualtors separately. \n" + \
@@ -17,6 +17,7 @@ USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases and r
 	-i || --ifile              - input file
 	-f || --ffile              - first output file
 	-s || --sfile              - second output file
+	-t || --tfile              - third output file
 	-b || --dbase              - specify database: mist or mist-mags
 	-c || --continue           - start a new analysis or continue with allready existing provided files.
 	                             Users are simply expected to specify -c (--continue) without provinding arguments.
@@ -29,11 +30,13 @@ SOURCE_CHOICES = {"mistdb", "rmodels"}
 INPUT_FILE = None
 OUTPUT_FILE1 = "output_HK.tsv"
 OUTPUT_FILE2 = "output_RR.tsv"
+OUTPUT_FILE3 = "output_OCP.tsv"
 CONTINUE = False
 
 #Variables set within the script
 PROTEIN_TYPE_CHOICES = ["hk", "rr", "ocp"]
-PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2}
+PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2, \
+						   PROTEIN_TYPE_CHOICES[2]: OUTPUT_FILE3}
 GENOME_VERSIONS = None
 TIMEOUT_FILE = "timeout_genomes.txt"
 DATABASE = "mist"
@@ -49,15 +52,16 @@ SIGNAL_GENES_HK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=t
 SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hhk&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_RR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,rr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_HRR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hrr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+SIGNAL_GENES_OCP = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=ocp&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
 HIS_KINASE_DIM_DOMAINS = ["HisKA", "HisKA_2", "HisKA_3", "H-kinase_dim", "His_kinase"]
 HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
 RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
 
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE, SOURCE
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, OUTPUT_FILE3, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE, SOURCE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hd:i:f:s:b:c",["help", "dsource=", "ifile=", "ffile=", "sfile=", "dbase=", "continue"])
+		opts, args = getopt.getopt(argv[1:],"hd:i:f:s:t:b:c",["help", "dsource=", "ifile=", "ffile=", "sfile=", "tfile=", "dbase=", "continue"])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -77,6 +81,8 @@ def initialize(argv):
 				OUTPUT_FILE1 = str(arg).strip()
 			elif opt in ("-s", "--sfile"):
 				OUTPUT_FILE2 = str(arg).strip()
+			elif opt in ("-t", "--tfile"):
+				OUTPUT_FILE3 = str(arg).strip()
 			elif opt in ("-b", "--dbase"):
 				DATABASE = str(arg).strip()
 				if DATABASE not in DATABASE_TO_URL:
@@ -88,7 +94,8 @@ def initialize(argv):
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
 	#Initialize the dictionary with the provided files
-	PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2}
+	PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2, \
+							PROTEIN_TYPE_CHOICES[2]: OUTPUT_FILE3}
 	if not CONTINUE:
 		#Create ouput files and write headers:
 		for oFile in PROTEIN_TYPE_TO_OUTFILE.values():
@@ -107,21 +114,21 @@ def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
 		sensorRegulatorType = "rr"
 	elif additionaFieldsTemplate == SIGNAL_GENES_HRR:
 		sensorRegulatorType = "hrr"
+	elif additionaFieldsTemplate == SIGNAL_GENES_OCP:
+		sensorRegulatorType = "ocp"
 	genomeURL = DATABASE_TO_URL[DATABASE] + genomeVersion
-
-	#Get stp-matrix and look at the numnber of components and save those components that have two-component systems.
-	#They will be saved in componentsWithTcp list.
-	componentsWithTcp = list() #componentsWithTcp will be populated
-	getSignalGenes(genomeURL + STP_MATRIX, componentsWithTcp, genomeVersion, sensorRegulatorType, False, False)
-
-	#Retrieve signal genes in those genomic components (chromosomes, scaffolds, or contigs depending on the assembly level) that have two-component systems
+	#Get stp-matrix and look at the number of components and save those components that have two- or one-component systems.
+	#They will be saved in componentsWithST list.
+	componentsWithST = list() #componentsWithST will be populated
+	getSignalGenes(genomeURL + STP_MATRIX, componentsWithST, genomeVersion, sensorRegulatorType, False, False)
+	#Retrieve signal genes in those genomic components (chromosomes, scaffolds, or contigs depending on the assembly level) that have two- or one-component systems
 	signalGeneList = list()
-	for component in componentsWithTcp:
+	for component in componentsWithST:
 		getSignalGenes(genomeURL, signalGeneList, genomeVersion, False, additionaFieldsTemplate, component)
 
 	return signalGeneList			
 
-def getSignalGenes(url, elementList, genomeVersion, tcpMatrix, additionaFieldsTemplate=False, component=False):
+def getSignalGenes(url, elementList, genomeVersion, stMatrix, additionaFieldsTemplate=False, component=False):
 	noDataAnymore = False
 	#This range is enough as 100 requests for 100 items per page is 10000 items. The numer of components per genome (or histidine kinase|respose regulators)
 	#is an order of magnitde less than this.
@@ -132,17 +139,17 @@ def getSignalGenes(url, elementList, genomeVersion, tcpMatrix, additionaFieldsTe
 			constructedUrl = url + additionaFields
 		else:
 			constructedUrl = url.replace("%PAGE%", str(num))
-		noDataAnymore = signalGenesRetriever(constructedUrl, elementList, genomeVersion, tcpMatrix, noDataAnymore)
+		noDataAnymore = signalGenesRetriever(constructedUrl, elementList, genomeVersion, stMatrix, noDataAnymore)
 		if noDataAnymore:
 			break
 
-def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymore):
+def signalGenesRetriever(url, elementList, genomeVersion, stMatrix, noDataAnymore):
 	for iteration in range (1, 11):
 		try:
 			result = urllib.request.urlopen(url)
 			resultAsJson = json.loads(result.read().decode("utf-8"))
-			#In case of tcpMatrix: No data anymore from this page on
-			if tcpMatrix and "components" in resultAsJson and not resultAsJson["components"]:
+			#In case of stMatrix: No data anymore from this page on
+			if stMatrix and "components" in resultAsJson and not resultAsJson["components"]:
 				noDataAnymore = True
 				break
 			#Regular case of retrieveing proteins
@@ -165,10 +172,10 @@ def signalGenesRetriever(url, elementList, genomeVersion, tcpMatrix, noDataAnymo
 			LOGGER.info("Continue.")
 			continue
 			
-		if tcpMatrix:
-			if "tcp" in resultAsJson["counts"]:
+		if stMatrix:
+			if "tcp" in resultAsJson["counts"] or "ocp" in resultAsJson["counts"]:
 				for component in resultAsJson["components"]:
-					if "tcp" in component["counts"] and tcpMatrix in component["counts"]["tcp"]:
+					if ("tcp" in component["counts"] and stMatrix in component["counts"]["tcp"]) or "ocp" in component["counts"]:
 						elementList.append(component)
 		else:
 			elementList.extend(resultAsJson)
@@ -188,6 +195,7 @@ def processDomains():
 				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HHK), PROTEIN_TYPE_CHOICES[0]))
 				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_RR), PROTEIN_TYPE_CHOICES[1]))
 				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HRR), PROTEIN_TYPE_CHOICES[1]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_OCP), PROTEIN_TYPE_CHOICES[2]))
 				for signalGeneList in listOfSignalGeneLists:
 					for gene in signalGeneList[0]:
 						prepareDomains(gene, genomeVersion, signalGeneList[1])
@@ -262,7 +270,7 @@ def processHoles(domains):
 	elif HisKA_ind >=0:
 		checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
 	#if both HisKA and HATPase are not in my two lists, HIS_KINASE_DIM_DOMAINS and HIS_KINASE_CATAL_DOMAINS, still process all the domains:
-	#or if the domains belonw to response regulator, do this:
+	#or if the domains belong to a response regulator or a one component protein, do this:
 	else:
 		checkAndAddHolesAndDomains(domains, domainsOutput, minDomainLength)
 		

@@ -22,9 +22,9 @@ prepare_files() {
 	
 	obtain_and_prepare_gtdb_files
 
-	if [ -f "./results/obtain_and_process_tcs/output.tar.gz" ]; then
+	if [ -f "./results/obtain_and_process_st/output.tar.gz" ]; then
 		echo "Unpack and decompress the results of querying mistdb.com to obtain domain information for analyzed genomes" 
-		tar xvf ./results/obtain_and_process_tcs/output.tar.gz -C ./results/obtain_and_process_tcs/
+		tar xvf ./results/obtain_and_process_st/output.tar.gz -C ./results/obtain_and_process_st/
 	fi
 }
 
@@ -77,52 +77,57 @@ obtain_and_prepare_gtdb_files() {
 }
 
 initialize_scripts_and_folders() {
-	OBTAIN="obtain_and_process_tcs.py"
+	OBTAIN="obtain_and_process_st.py"
 	OFOLDER="./results/${OBTAIN%.*}"
 	check_create "${OFOLDER}"
 
-	ANALYZEG="analyze_tcs_per_genome.py"
+	ANALYZEG="analyze_st_per_genome.py"
 	AGFOLDER="./results/${ANALYZEG%.*}"
 	check_create "${AGFOLDER}"
 
-	ANALYZET="analyze_tcs_per_taxon.py"
+	ANALYZET="analyze_st_per_taxon.py"
 	ATFOLDER="./results/${ANALYZET%.*}"
 	check_create "${ATFOLDER}"
 }
 
-# Obtain and perform first step analysis of two-component systems (hk - histidine kinase, rr - response regulator)
+# Obtain and perform the first step analysis of two-component (hk - histidine kinase, rr - response regulator) and one-component systems
 obtain() {
-	echo "1. Fetching two-component systems (TCS) from MiST ..."
-	echo "1.1. Fetching archaeal two-component systems ..."
+	echo "1. Fetching signal transduction systems (ST) from MiST ..."
+	echo "1.1. Fetching archaeal signal transduction systems ..."
 	for db in ${DB[@]}; do
 		./pipeline/${OBTAIN} \
 			-d mistdb \
 			-i ${ARCH_FILE%.*}_$db.tsv \
 			-f ${OFOLDER}/hk_archaea_$db.tsv \
 			-s ${OFOLDER}/rr_archaea_$db.tsv \
+			-t ${OFOLDER}/ocp_archaea_$db.tsv \
 			-b $db
 		# Put results from $DB into one file for each his kinase (hk) and resp regulators (rr)
 		sed '1d' ${OFOLDER}/hk_archaea_$db.tsv >> ${OFOLDER}/hk_archaea_all.tsv
 		sed '1d' ${OFOLDER}/rr_archaea_$db.tsv >> ${OFOLDER}/rr_archaea_all.tsv
+		sed '1d' ${OFOLDER}/ocp_archaea_$db.tsv >> ${OFOLDER}/ocp_archaea_all.tsv
 	done
 
-	echo "1.2. Fetching bacterial two-component systems ..."
+	echo "1.2. Fetching bacterial signal transduction systems ..."
 	for db in ${DB[@]}; do
 		./pipeline/${OBTAIN} \
 			-d mistdb \
 			-i ${BACT_FILE%.*}_$db.tsv \
 			-f ${OFOLDER}/hk_bacteria_$db.tsv \
 			-s ${OFOLDER}/rr_bacteria_$db.tsv \
+			-t ${OFOLDER}/ocp_bacteria_$db.tsv \
 			-b $db
 		# Put results from $DB into one file for each his kinase (hk) and resp regulators (rr)
 		sed '1d' ${OFOLDER}/hk_bacteria_$db.tsv >> ${OFOLDER}/hk_bacteria_all.tsv
 		sed '1d' ${OFOLDER}/rr_bacteria_$db.tsv >> ${OFOLDER}/rr_bacteria_all.tsv
+		sed '1d' ${OFOLDER}/ocp_bacteria_$db.tsv >> ${OFOLDER}/ocp_bacteria_all.tsv
 	done
 
 	# Prepare the database file
 	echo $'genome\tgenome_accession\tncbi_protein_accession\tmist_protein_accession\tprotein_type\tsource\tprotein_length\t'\
 		$'domain_architecture\tsensors_or_regulators\tdomain_counts\tdomains' | sed 's/ //g' > ${OFOLDER}/per_protein_combined_db.tsv
-	cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
+	cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv \
+		${OFOLDER}/ocp_archaea_all.tsv ${OFOLDER}/ocp_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
 
 }
 
@@ -130,19 +135,19 @@ analyze() {
 	if [ -z "$(ls -A $AGFOLDER)" ]; then
 		analyze_systems_by_genome
 	else
-		echo "Folder '$AGFOLDER' is not empty. Analysis of two-component systems by genome will not run. Empty the folder before running the pipeline."
+		echo "Folder '$AGFOLDER' is not empty. Analysis of signal transduction systems by genome will not run. Empty the folder before running the pipeline."
 	fi
 
 	if [ -z "$(ls -A $ATFOLDER)" ]; then
 		analyze_systems_by_taxon
 	else
-		echo "Folder '$ATFOLDER' is not empty.  Analysis of two-component systems by taxon will not run. Empty the folder before running the pipeline."
+		echo "Folder '$ATFOLDER' is not empty.  Analysis of signal transduction systems by taxon will not run. Empty the folder before running the pipeline."
 	fi
 }
 
-# Analyze two-component systems by genome
+# Analyze signal transduction systems by genome
 analyze_systems_by_genome() {
-	echo "2. Analyzing two-component systems by genome ..."
+	echo "2. Analyzing signal transduction systems by genome ..."
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}
 		# One of: 'hk', 'rr', 'ocp'
@@ -165,9 +170,9 @@ analyze_systems_by_genome() {
 	cat ${AGFOLDER}/*p.tsv >> ${AGFOLDER}/per_genome_combined_db.tsv
 }
 
-# Analyze two-component systems by taxonomic level
+# Analyze signal transduction systems by taxonomic level
 analyze_systems_by_taxon() {
-	echo "3. Analyzing two-component systems by taxa using files generated in the previous step ..."
+	echo "3. Analyzing signal transduction systems by taxa using files generated in the previous step ..."
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*p.tsv; do

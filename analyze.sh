@@ -16,8 +16,8 @@ prepare_files() {
 	grep "d__Archaea" ${REPR_FILE} > ${ARCH_FILE}
 
 	for db in ${!DB[@]}; do
-		grep "$db" ${BACT_FILE} > ${BACT_FILE%.*}_"${DB[$db]}".tsv
-		grep "$db" ${ARCH_FILE} > ${ARCH_FILE%.*}_"${DB[$db]}".tsv
+		grep "\s$db" ${BACT_FILE} > ${BACT_FILE%.*}_"${DB[$db]}".tsv
+		grep "\s$db" ${ARCH_FILE} > ${ARCH_FILE%.*}_"${DB[$db]}".tsv
 	done
 	
 	obtain_and_prepare_gtdb_files

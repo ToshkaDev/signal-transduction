@@ -1,7 +1,7 @@
-results/obtain_and_process_tcs/*.tsv
-results/obtain_and_process_tcs/log
-results/analyze_tcs_per_genome/*.tsv
-results/analyze_tcs_per_taxon/*.tsv
+results/obtain_and_process_st/*.tsv
+results/obtain_and_process_st/log
+results/analyze_st_per_genome/*.tsv
+results/analyze_st_per_taxon/*.tsv
 input/*mist*.tsv
 input/*bact.tsv
 input/*arch.tsv

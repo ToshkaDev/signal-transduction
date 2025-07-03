@@ -22,9 +22,22 @@ prepare_files() {
 	
 	obtain_and_prepare_gtdb_files
 
-	if [ -f "./results/obtain_and_process_st/output.tar.gz" ]; then
+	OFOLDER="./results/obtain_and_process_st"
+	if [ -f "${OFOLDER}/tcs.tar.gz" ] || [ -f "${OFOLDER}/ocp_bacteria_all1.tsv.tar.gz" ]; then
 		echo "Unpack and decompress the results of querying mistdb.com to obtain domain information for analyzed genomes" 
-		tar xvf ./results/obtain_and_process_st/output.tar.gz -C ./results/obtain_and_process_st/
+		tar xvf ${OFOLDER}/tcs.tar.gz -C ${OFOLDER}/
+		tar xvf ${OFOLDER}/ocp_archaea_all.tsv.tar.gz -C ${OFOLDER}/
+		tar xvf ${OFOLDER}/ocp_bacteria_all1.tsv.tar.gz -C ${OFOLDER}/
+		tar xvf ${OFOLDER}/ocp_bacteria_all2.tsv.tar.gz -C ${OFOLDER}/
+		tar xvf ${OFOLDER}/ocp_bacteria_all3.tsv.tar.gz -C ${OFOLDER}/
+		# Concatenate ocp_bacteria_all* files
+		cat ${OFOLDER}/ocp_bacteria_all1.tsv ${OFOLDER}/ocp_bacteria_all2.tsv ${OFOLDER}/ocp_bacteria_all3.tsv > ${OFOLDER}/ocp_bacteria_all.tsv
+
+		# Prepare the database file
+		echo $'genome\tgenome_accession\tncbi_protein_accession\tmist_protein_accession\tprotein_type\tsource\tprotein_length\t'\
+			$'domain_architecture\tsensors_or_regulators\tdomain_counts\tdomains' | sed 's/ //g' > ${OFOLDER}/per_protein_combined_db.tsv
+		cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv \
+			${OFOLDER}/ocp_archaea_all.tsv ${OFOLDER}/ocp_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
 	fi
 }
 

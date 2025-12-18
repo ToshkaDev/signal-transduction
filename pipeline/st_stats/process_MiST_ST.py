@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 import sys, getopt
-import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error
 import json
 import collections
 import os.path
+import time
+import logging
 
 USAGE = "\n\nThe script queries MiST db via it's API for signal transduction in genomes.\n\n" + \
 	"It produces ST info for each genome. \n\n" + \
@@ -15,7 +17,11 @@ USAGE = "\n\nThe script queries MiST db via it's API for signal transduction in 
 	-p || --pfile              - output file with genome id, protein id, and domain architecture
 	-t || --task               - what to do. One of the following:
 								 identifyDomainCombinsAcrossComps, identifyDomainCombinsAcrossGenomes; classifySignalGenesAcrossCompons, classifySignalGenesInCompons
+	-b || --dbase              - specify database: mist or mist-mags
 	'''
+
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
 
 FUNCTIONAL_CATEGORIES = collections.OrderedDict([("TR", 0), ("CNR", 0), ("K/P", 0), ("PP",0), ("SIGME", 0), ("UNK", 0), ("DNA_UNK", 0), ("TRES", 0), ("INT", 0), ("Che", 0)])
 
@@ -33,6 +39,13 @@ GENOMES_URL = "https://api.mistdb.caltech.edu/v1/genomes/"
 #COMPONENT_INFO_FIELDS = "?fields=id,version&fields.Component=id,name,version,length,type"
 SIGNAL_GENES_ADDITIONAL_FIELDS = "/signal-genes?count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
+DATABASE = "mist"
+
+GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
+METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
+DATABASE_TO_URL = {"mist": GENOMES_URL, "mist-mags": METAGENOMES_URL}
+SIGNAL_GENES_ADDITIONAL_FIELDS = "/signal-genes?count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+
 INPUT_FILE = None
 ST_INPUT_FILE = None
 OUTPUT_FILE = None
@@ -40,40 +53,10 @@ OUTPUT_FILE2 = None
 TIMEOUT_FILE = "timeout_genomes.txt"
 TASK = None
 
-#{"genome1": 
-#	{"chromosome": 
-#		{"domainCombination1": count, "domainCombination2": count, ...}, 
-#	"plasmid1": 
-#		{"domainCombination1": count, "domainCombination22": count, ...} 
-#	} 
-#}
-
- #~ {
-    #~ "id": 1921319,
-    #~ "gene_id": 24912846,
-    #~ "component_id": 410011,
-    #~ "signal_domains_version": 1,
-    #~ "ranks": [
-      #~ "ocp"
-    #~ ],
-    #~ "counts": {
-      #~ "HTH_3": 1
-    #~ },
-    #~ "inputs": [],
-    #~ "outputs": [
-      #~ "HTH_3"
-    #~ ],
-    #~ "Component": {
-      #~ "name": "pAB510f",
-      #~ "version": "NC_013860.1",
-      #~ "definition": "Azospirillum sp. B510 plasmid pAB510f DNA, complete genome."
-    #~ }
-  #~ },
-
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE, OUTPUT_FILE2, ST_INPUT_FILE, TASK
+	global INPUT_FILE, OUTPUT_FILE, OUTPUT_FILE2, ST_INPUT_FILE, TASK, DATABASE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:s:o:p:t:",["help", "ifile=", "sfile=", "ofile=", "pfile=", "task="])
+		opts, args = getopt.getopt(argv[1:],"hi:s:o:p:t:b:",["help", "ifile=", "sfile=", "ofile=", "pfile=", "task=", "dbase="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -94,6 +77,11 @@ def initialize(argv):
 				OUTPUT_FILE2 = str(arg).strip()
 			elif opt in ("-t", "--task"):
 				TASK = str(arg).strip()
+			elif opt in ("-b", "--dbase"):
+				DATABASE = str(arg).strip()
+				if DATABASE not in DATABASE_TO_URL:
+					print ("Database should be one of the following: " + ", ".join(DATABASE_TO_URL.keys()))
+					sys.exit(2)
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
@@ -112,7 +100,8 @@ def initialyzeSTCollectionAndGenomeList():
 		GENOME_VERSIONS = [record.strip() for record in inputFile]
 
 def retrieveSignalGenesFromMist(genomeVersion):
-	genomeURL = GENOMES_URL + genomeVersion
+	#genomeURL = GENOMES_URL + genomeVersion
+	genomeURL = DATABASE_TO_URL[DATABASE] + genomeVersion
 	signalGenesList = list()
 	noDataAnymore = False
 	for num in range(1, 101):
@@ -127,12 +116,21 @@ def retrieveSignalGenesFromMist(genomeVersion):
 					break
 				if "name" in resultAsJson:	#404 NotFoundError
 					break
-			#except ValueError: #504 Gateway timeouts
-			except urllib.error.HTTPError:
-			#except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
+			# #except ValueError: #504 Gateway timeouts
+			# except urllib.error.HTTPError:
+			# #except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
+			except (urllib.error.HTTPError, urllib.error.URLError, json.decoder.JSONDecodeError) as error:
 				if iteration == 9:
+					# with open (TIMEOUT_FILE, "a") as timeoutFile:
+					# 	timeoutFile.write(genomeVersion + "\n")
 					with open (TIMEOUT_FILE, "a") as timeoutFile:
+						LOGGER.info("Ten attempts to retrieve data were unsuccessful. Save the genome caused the problem to %s file", TIMEOUT_FILE)
 						timeoutFile.write(genomeVersion + "\n")
+				#sleep 5 seconds if gateway timeout happened
+				LOGGER.error("Timeout error: %s", error)
+				LOGGER.info("Attempt " + str(iteration) + ". Sleep for 5 seconds...")
+				time.sleep(5)
+				LOGGER.info("Continue.")
 				continue
 			signalGenesList.extend(resultAsJson)
 			break

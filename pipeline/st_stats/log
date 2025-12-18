@@ -1,0 +1,94 @@
+python3 process_MiST_ST.py -i gtdb-MiST-sample-large_GenomeIDs.txt -s MiST_domains_2018.txt -t identifyDomainCombinsAcrossComps -o gtdb-MiST-sample-large_GenomeIDs_results.txt -p gtdb-MiST-sample-large_GenomeIDs_results_genes.txt
+
+Since the process stopped at the empty linge I subtracted the rest of genome ids to a new file and used it to continue retrieving genomes:
+(this long command to et read of the space in the list of genome ids)
+tail -n 9273 gtdb-MiST-sample-large_GenomeIDs.txt | sort -u | tail -n 9272 > gtdb-MiST-sample-large_GenomeIDs_from8193.txt
+
+python3 process_MiST_ST.py -i gtdb-MiST-sample-large_GenomeIDs_from8193.txt -s MiST_domains_2018.txt -t identifyDomainCombinsAcrossComps -o gtdb-MiST-sample-large_GenomeIDs_results.txt -p gtdb-MiST-sample-large_GenomeIDs_results_genes.txt
+
+
+Stopped again. Continue:
+tail -n 4652 gtdb-MiST-sample-large_GenomeIDs_from8193.txt > gtdb-MiST-sample-large_GenomeIDs_from4621.txt
+
+python3 process_MiST_ST.py -i gtdb-MiST-sample-large_GenomeIDs_from4621.txt -s MiST_domains_2018.txt -t identifyDomainCombinsAcrossComps -o gtdb-MiST-sample-large_GenomeIDs_results.txt -p gtdb-MiST-sample-large_GenomeIDs_results_genes.txt
+
+Stopped again. Continue:
+tail -n 1202 gtdb-MiST-sample-large_GenomeIDs_from4621.txt > gtdb-MiST-sample-large_GenomeIDs_from3451.txt
+python3 process_MiST_ST.py -i gtdb-MiST-sample-large_GenomeIDs_from3451.txt -s MiST_domains_2018.txt -t identifyDomainCombinsAcrossComps -o gtdb-MiST-sample-large_GenomeIDs_results.txt -p gtdb-MiST-sample-large_GenomeIDs_results_genes.txt
+
+========================
+Collect counts.
+python3 process_MiST_ST_counts.py -i gtdb-MiST-sample-large_GenomeIDs_sorted.txt -o gtdb-MiST-sample-large_GenomeIDs_ST_counts.txt
+Stopped. Continue:
+tail -n 12480 gtdb-MiST-sample-large_GenomeIDs_sorted.txt > gtdb-MiST-sample-large_GenomeIDs_sorted_from4984.txt
+python3 process_MiST_ST_counts.py -i gtdb-MiST-sample-large_GenomeIDs_sorted_from4984.txt -o gtdb-MiST-sample-large_GenomeIDs_ST_counts.txt
+
+Collection of detailed chemotacitic info
+cd Chemotactic_counts 
+../process_MiST_ST_counts.py -i ../gtdb-MiST-sample-large_GenomeIDs_sorted.txt -o placeholderFile.txt
+
+
+========================
+Add full taxonomy and phyla:
+printSecondFileFullyAndSharedColumn.py 0 $'\t' 0 $'\t' ./GTDB_data/bac120_metadata_r202_fieldsForMe.tsv  gtdb-MiST-sample-large_GenomeIDs_ST_counts.txt > gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBac.txt
+printSecondFileFullyAndSharedColumn.py 0 $'\t' 0 $'\t' ./GTDB_data/ar122_metadata_r202_fieldsForMe.tsv  gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBac.txt > gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc.txt
+
+cut -f1,2 -d ';' gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc.txt >  gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc_shortToPhylum.txt
+cut -f1-3 -d ';' gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc.txt >  gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc_shortToClass.txt
+
+-----
+cd Chemotactic_counts
+
+for everyFile in *.txt; do
+    printSecondFileFullyAndSharedColumn.py 0 $'\t' 0 $'\t' ../GTDB_data/bac120_metadata_r202_fieldsForMe.tsv  ${everyFile} > ${everyFile%.*}_fullTaxonomyBac.txt
+    printSecondFileFullyAndSharedColumn.py 0 $'\t' 0 $'\t' ../GTDB_data/ar122_metadata_r202_fieldsForMe.tsv  ${everyFile%.*}_fullTaxonomyBac.txt > ${everyFile%.*}_fullTaxonomy.txt
+    rm ${everyFile%.*}_fullTaxonomyBac.txt
+    cut -f1,2 -d ';' ${everyFile%.*}_fullTaxonomy.txt >  ${everyFile%.*}_fullTaxonomy_shortToPhylum.txt
+    cut -f1-3 -d ';' ${everyFile%.*}_fullTaxonomy.txt >  ${everyFile%.*}_fullTaxonomy_shortToClass.txt
+done
+
+=========================
+
+Categorize functionally.
+python3 process_MiST_ST.py -i gtdb-MiST-sample-large_GenomeIDs_sorted.txt -s MiST_domains_2018.txt -t classifySignalGenesAcrossCompons -o gtdb-MiST-sample-large_GenomeIDs_ST_functionalCategories.txt
+
+Stopped. Continue:
+tail -n 16102 gtdb-MiST-sample-large_GenomeIDs_sorted.txt > gtdb-MiST-sample-large_GenomeIDs_sorted_from1362.txt 
+python3 process_MiST_ST.py -i gtdb-MiST-sample-large_GenomeIDs_sorted_from1362.txt -s MiST_domains_2018.txt -t classifySignalGenesAcrossCompons -o gtdb-MiST-sample-large_GenomeIDs_ST_functionalCategories.txt
+
+
+
+----------------
+Analysis:
+1) Counts and relations across phyla:
+./getST_numbers.py gtdb-MiST-sample-large_GenomeIDs_ST_counts.txt > gtdb-MiST-sample-large_GenomeIDs_ST_counts_summaryAcrossPhyla.txt
+./getST_numbers.py gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc_shortToPhylum.txt  > gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc_shortToPhylum_summary.txt
+./getST_numbers.py gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc_shortToClass.txt  > gtdb-MiST-sample-large_GenomeIDs_ST_counts_fullTaxonomyBacArc_shortToClass_summary.txt
+
+
+
+
+
+Average number of MCPs per CheA
+
+Most ubiquitious MCP class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

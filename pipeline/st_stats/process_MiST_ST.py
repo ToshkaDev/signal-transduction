@@ -35,9 +35,9 @@ GENOME_VERSIONS = list()
 DOMAIN_NAME_TO_NEW_CLASSIFICATION = dict()
 
 
-GENOMES_URL = "https://api.mistdb.caltech.edu/v1/genomes/"
-#COMPONENT_INFO_FIELDS = "?fields=id,version&fields.Component=id,name,version,length,type"
-SIGNAL_GENES_ADDITIONAL_FIELDS = "/signal-genes?count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+# GENOMES_URL = "https://api.mistdb.caltech.edu/v1/genomes/"
+# #COMPONENT_INFO_FIELDS = "?fields=id,version&fields.Component=id,name,version,length,type"
+# SIGNAL_GENES_ADDITIONAL_FIELDS = "/signal-genes?count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
 DATABASE = "mist"
 

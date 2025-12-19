@@ -11,7 +11,7 @@ USAGE = "\n\nThe script queries MiST db via it's API for signal transduction in 
 	"It produces ST info for each genome. \n\n" + \
 	"python 	" + sys.argv[0] + '''
 	-h || --help               - help
-	-i || --ifile              - input file
+	-i || --ifile              - input file (a new-line delimeted list of genome versions)
 	-s || --sfile              - input file with ST-domain to classification information
 	-o || --ofile              - output file
 	-p || --pfile              - output file with genome id, protein id, and domain architecture
@@ -22,6 +22,7 @@ USAGE = "\n\nThe script queries MiST db via it's API for signal transduction in 
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
+TIMEOUT_FILE = sys.argv[0].replace(".py", "")  + "_timeout_info.txt"
 
 FUNCTIONAL_CATEGORIES = collections.OrderedDict([("TR", 0), ("CNR", 0), ("K/P", 0), ("PP",0), ("SIGME", 0), ("UNK", 0), ("DNA_UNK", 0), ("TRES", 0), ("INT", 0), ("Che", 0)])
 
@@ -50,7 +51,6 @@ INPUT_FILE = None
 ST_INPUT_FILE = None
 OUTPUT_FILE = None
 OUTPUT_FILE2 = None
-TIMEOUT_FILE = "timeout_genomes.txt"
 TASK = None
 
 def initialize(argv):

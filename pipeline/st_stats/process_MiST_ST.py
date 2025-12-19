@@ -24,21 +24,15 @@ LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
 TIMEOUT_FILE = sys.argv[0].replace(".py", "")  + "_timeout_info.txt"
 
-FUNCTIONAL_CATEGORIES = collections.OrderedDict([("TR", 0), ("K/P", 0), ("PP",0), ("UNK", 0), ("DNA_UNK", 0), ("Che", 0)])
-
+FUNCTIONAL_CATEGORIES = collections.OrderedDict([("TR", 0), ("K/P", 0), ("PP", 0), ("UNK", 0), ("DNA_UNK", 0), ("Che", 0)])
 
 HEADER_TO_INDEX_IN_ST_FILE = \
 	{"Classification_marker": 0, "Definition":1, "Domain_name":2, "Pfam_clan_(superfamily)":3, \
 	"Description":4, "Function":5, "Specific_to_signal_transduction":6, "Source":7, "New_classification":8, \
 	"Abbr_new_classification":9}
 
-GENOME_VERSIONS = list()
 DOMAIN_NAME_TO_NEW_CLASSIFICATION = dict()
 
-
-# GENOMES_URL = "https://api.mistdb.caltech.edu/v1/genomes/"
-# #COMPONENT_INFO_FIELDS = "?fields=id,version&fields.Component=id,name,version,length,type"
-# SIGNAL_GENES_ADDITIONAL_FIELDS = "/signal-genes?count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
 DATABASE = "mist"
 
@@ -86,21 +80,17 @@ def initialize(argv):
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
 
-def initialyzeSTCollectionAndGenomeList():
+def initialyzeSTCollection():
 	with open(ST_INPUT_FILE, "r") as stInputFile:
 		for record in stInputFile:
 			record = record.split("\t")
 			domainColumn = HEADER_TO_INDEX_IN_ST_FILE["Domain_name"]
 			classificColumn = HEADER_TO_INDEX_IN_ST_FILE["Abbr_new_classification"]
-			classification = record[classificColumn].strip()
+			classification = record[classificColumn].strip().replace('"', '')
 			if len(classification):
-				DOMAIN_NAME_TO_NEW_CLASSIFICATION[record[domainColumn].strip()] = classification
-	global GENOME_VERSIONS
-	with open(INPUT_FILE, "r") as inputFile:
-		GENOME_VERSIONS = [record.strip() for record in inputFile]
+				DOMAIN_NAME_TO_NEW_CLASSIFICATION[record[domainColumn].strip().replace('"', '')] = classification
 
 def retrieveSignalGenesFromMist(genomeVersion):
-	#genomeURL = GENOMES_URL + genomeVersion
 	genomeURL = DATABASE_TO_URL[DATABASE] + genomeVersion
 	signalGenesList = list()
 	noDataAnymore = False
@@ -121,8 +111,6 @@ def retrieveSignalGenesFromMist(genomeVersion):
 			# #except json.decoder.JSONDecodeError:   #504 Gateway timeouts  From Python 3.5+
 			except (urllib.error.HTTPError, urllib.error.URLError, json.decoder.JSONDecodeError) as error:
 				if iteration == 9:
-					# with open (TIMEOUT_FILE, "a") as timeoutFile:
-					# 	timeoutFile.write(genomeVersion + "\n")
 					with open (TIMEOUT_FILE, "a") as timeoutFile:
 						LOGGER.info("Ten attempts to retrieve data were unsuccessful. Save the genome caused the problem to %s file", TIMEOUT_FILE)
 						timeoutFile.write(genomeVersion + "\n")
@@ -148,15 +136,18 @@ def processSignalGenes():
 		if not os.path.exists(OUTPUT_FILE):
 			with open(OUTPUT_FILE, "w") as outputFile:
 				outputFile.write("Genome_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\n")
-	for genomeVersion in GENOME_VERSIONS:
-		if genomeVersion.strip():
-			print(genomeVersion + "\t" + str(counter))
-			counter+=1
-			signalGenesList = retrieveSignalGenesFromMist(genomeVersion)
-			if TASK == "classifySignalGenesInCompons":
-				classifySignalGenesInCompons(genomeVersion, signalGenesList)
-			elif TASK == "classifySignalGenesAcrossCompons":
-				classifySignalGenesAcrossCompons(genomeVersion, signalGenesList)
+
+	with open(INPUT_FILE, "r") as inputFile:
+		for record in inputFile:
+			genomeVersion = record.split("\t")[1]
+			if genomeVersion.strip():
+				print(genomeVersion + "\t" + str(counter))
+				counter+=1
+				signalGenesList = retrieveSignalGenesFromMist(genomeVersion)
+				if TASK == "classifySignalGenesInCompons":
+					classifySignalGenesInCompons(genomeVersion, signalGenesList)
+				elif TASK == "classifySignalGenesAcrossCompons":
+					classifySignalGenesAcrossCompons(genomeVersion, signalGenesList)
 		
 def classifySignalGenesInCompons(genomeVersion, signalGenesList,):
 	componentToFunctionalCategories = dict()
@@ -199,31 +190,34 @@ def classifySignalGenesAcrossCompons(genomeVersion, signal_genes_list):
 def processDomains():
 	if TASK == "identifyDomainCombinsAcrossComps":
 		genomeNumber = 1
-		for genomeVersion in GENOME_VERSIONS:
-			if genomeVersion.strip():
-				print("Genome Number: " + str(genomeNumber))
-				genomeNumber+=1
-				signalGenesList = retrieveSignalGenesFromMist(genomeVersion)
-				domainCombinToCount = collections.defaultdict(int)
-				for gene in signalGenesList:
-					dominsListSordtedAsStr = prepareDomains(gene, domainCombinToCount)
-					if dominsListSordtedAsStr:
-						with open(OUTPUT_FILE2, "a") as outputFile:
-							outputFile.write(genomeVersion + "\t" + gene["Gene"]["version"] + "\t" + dominsListSordtedAsStr + "\n")
-						
-				domainCombinToCountList = sorted(list(domainCombinToCount.items()), key=lambda a: a[1], reverse=True)
-				with open(OUTPUT_FILE, "a") as outputFile:
-					for domainCombinAndCount in domainCombinToCountList:
-						outputFile.write(genomeVersion + "\t" + domainCombinAndCount[0] + "\t" + str(domainCombinAndCount[1]) + "\n")	
+		with open(INPUT_FILE, "r") as inputFile:
+			for record in inputFile:
+				genomeVersion = record.split("\t")[1]
+				if genomeVersion.strip():
+					print("Genome Number: " + str(genomeNumber))
+					genomeNumber+=1
+					signalGenesList = retrieveSignalGenesFromMist(genomeVersion)
+					domainCombinToCount = collections.defaultdict(int)
+					for gene in signalGenesList:
+						dominsListSordtedAsStr = prepareDomains(gene, domainCombinToCount)
+						if dominsListSordtedAsStr:
+							with open(OUTPUT_FILE2, "a") as outputFile:
+								outputFile.write(genomeVersion + "\t" + gene["Gene"]["version"] + "\t" + dominsListSordtedAsStr + "\n")
+							
+					domainCombinToCountList = sorted(list(domainCombinToCount.items()), key=lambda a: a[1], reverse=True)
+					with open(OUTPUT_FILE, "a") as outputFile:
+						for domainCombinAndCount in domainCombinToCountList:
+							outputFile.write(genomeVersion + "\t" + domainCombinAndCount[0] + "\t" + str(domainCombinAndCount[1]) + "\n")	
 
-						
 	elif TASK == "identifyDomainCombinsAcrossGenomes":
-		domainCombinAcrossGenomesToCount = collections.defaultdict(int) 
-		for genomeVersion in GENOME_VERSIONS:
-			if genomeVersion.strip():
-				signalGenesList = retrieveSignalGenesFromMist(genomeVersion) 
-				for gene in signalGenesList:
-					prepareDomains(gene, domainCombinAcrossGenomesToCount)
+		domainCombinAcrossGenomesToCount = collections.defaultdict(int)
+		with open(INPUT_FILE, "r") as inputFile:
+			for record in inputFile:
+				genomeVersion = record.split("\t")[1]
+				if genomeVersion.strip():
+					signalGenesList = retrieveSignalGenesFromMist(genomeVersion) 
+					for gene in signalGenesList:
+						prepareDomains(gene, domainCombinAcrossGenomesToCount)
 		domainCombinAndCountList = sorted(list(domainCombinAcrossGenomesToCount.items()), key=lambda a: a[1], reverse=True)
 		with open(OUTPUT_FILE, "w") as outputFile:
 			for domainCombinAndCount in domainCombinAndCountList:
@@ -300,7 +294,7 @@ def compareEvalues(pfam1, pfam2):
 		
 def main(argv):
 	initialize(argv)
-	initialyzeSTCollectionAndGenomeList()
+	initialyzeSTCollection()
 	if TASK == "classifySignalGenesAcrossCompons" or TASK == "classifySignalGenesInCompons":
 		print ("Identifying and processing Signal genes")
 		processSignalGenes()

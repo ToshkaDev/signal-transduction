@@ -97,7 +97,7 @@ def collectSignalGenesCounts():
 	recordCounter = 0
 	with open(INPUT_FILE) as inputfile:
 		for line in inputfile:
-			genomeVersion = line.strip()
+			genomeVersion = line.split("\t")[1]
 			recordCounter+=1
 			print((genomeVersion + "\t" + str(recordCounter)))
 			constructedUrl = DATABASE_TO_URL[DATABASE] + genomeVersion + "/stp-matrix?per_page=1"
@@ -109,12 +109,6 @@ def collectSignalGenesCounts():
 						break
 					if "name" in data:	#404 NotFoundError
 						break
-				except ValueError: #504 Gateway timeout
-					if iteration == 9:
-						with open (TIMEOUT_FILE, "a") as timeoutFile:
-							timeoutFile.write(genomeVersion + "\n")
-					continue
-
 				except (urllib.error.HTTPError, urllib.error.URLError, json.decoder.JSONDecodeError) as error:
 					if iteration == 9:
 						with open (TIMEOUT_FILE, "a") as timeoutFile:

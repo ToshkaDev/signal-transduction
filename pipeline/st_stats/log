@@ -80,6 +80,7 @@ Most ubiquitious MCP class
 
 
 
+python3 process_MiST_ST.py -i testids.txt -s MiST_domains_2018.txt -t classifySignalGenesAcrossCompons -o gtdb-MiST-sample-large_GenomeIDs_results.txt -p gtdb-MiST-sample-large_GenomeIDs_results_genes.txt
 
 
 

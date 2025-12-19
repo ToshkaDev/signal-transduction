@@ -24,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
 TIMEOUT_FILE = sys.argv[0].replace(".py", "")  + "_timeout_info.txt"
 
-FUNCTIONAL_CATEGORIES = collections.OrderedDict([("TR", 0), ("CNR", 0), ("K/P", 0), ("PP",0), ("SIGME", 0), ("UNK", 0), ("DNA_UNK", 0), ("TRES", 0), ("INT", 0), ("Che", 0)])
+FUNCTIONAL_CATEGORIES = collections.OrderedDict([("TR", 0), ("K/P", 0), ("PP",0), ("UNK", 0), ("DNA_UNK", 0), ("Che", 0)])
 
 
 HEADER_TO_INDEX_IN_ST_FILE = \

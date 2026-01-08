@@ -84,7 +84,7 @@ Most ubiquitious MCP class
 
 ./process_MiST_ST_counts.py -i testids -o st_counts -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
-
+./getST_numbers.py -i st_counts -o st_counts_sum -t 2
 
 
 

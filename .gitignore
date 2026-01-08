@@ -5,6 +5,7 @@ results/analyze_st_per_taxon/*.tsv
 input/*mist*.tsv
 input/*bact.tsv
 input/*arch.tsv
+*_log.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

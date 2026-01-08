@@ -18,6 +18,7 @@ USAGE = "\n\nThe script queries MiST db via it's API for signal transduction in 
 	-t || --task               - what to do. One of the following:
 								 identifyDomainCombinsAcrossComps, identifyDomainCombinsAcrossGenomes; classifySignalGenesAcrossCompons, classifySignalGenesInCompons
 	-b || --dbase              - specify database: mist or mist-mags
+	-g || --gtdbmeta           - GTDB metadata filed prepared by the SIGNAL pipeline
 	'''
 
 LOGGER = logging.getLogger(__name__)
@@ -33,7 +34,6 @@ HEADER_TO_INDEX_IN_ST_FILE = \
 
 DOMAIN_NAME_TO_NEW_CLASSIFICATION = dict()
 
-
 DATABASE = "mist"
 
 GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
@@ -41,16 +41,19 @@ METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
 DATABASE_TO_URL = {"mist": GENOMES_URL, "mist-mags": METAGENOMES_URL}
 SIGNAL_GENES_ADDITIONAL_FIELDS = "/signal-genes?count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
+GTDB_METADATA_FILE = "../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv"
 INPUT_FILE = None
 ST_INPUT_FILE = None
 OUTPUT_FILE = None
 OUTPUT_FILE2 = None
 TASK = None
 
+GENOME_TO_TAXONOMY = {}
+
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE, OUTPUT_FILE2, ST_INPUT_FILE, TASK, DATABASE
+	global INPUT_FILE, OUTPUT_FILE, OUTPUT_FILE2, ST_INPUT_FILE, TASK, DATABASE, GTDB_METADATA_FILE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:s:o:p:t:b:",["help", "ifile=", "sfile=", "ofile=", "pfile=", "task=", "dbase="])
+		opts, args = getopt.getopt(argv[1:],"hi:s:o:p:t:b:g:",["help", "ifile=", "sfile=", "ofile=", "pfile=", "task=", "dbase=", "gtdbmeta="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -76,9 +79,16 @@ def initialize(argv):
 				if DATABASE not in DATABASE_TO_URL:
 					print ("Database should be one of the following: " + ", ".join(DATABASE_TO_URL.keys()))
 					sys.exit(2)
+			elif opt in ("-g", "--gtdbmeta"):
+				GTDB_METADATA_FILE = str(arg).strip()
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
+
+	with open(GTDB_METADATA_FILE) as gtdbMetaFile:
+		for line in gtdbMetaFile:
+			line_s = line.split("\t")
+			GENOME_TO_TAXONOMY[line_s[0]] = line_s[4]
 
 def initialyzeSTCollection():
 	with open(ST_INPUT_FILE, "r") as stInputFile:
@@ -131,11 +141,11 @@ def processSignalGenes():
 	if TASK == "classifySignalGenesInCompons":
 		if not os.path.exists(OUTPUT_FILE):
 			with open(OUTPUT_FILE, "w") as outputFile:
-				outputFile.write("Genome_Version\tComponent_Name\tComponent_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\n")
+				outputFile.write("Genome_Version\tComponent_Name\tComponent_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\t" + "Taxonomy\n")
 	elif TASK == "classifySignalGenesAcrossCompons":
 		if not os.path.exists(OUTPUT_FILE):
 			with open(OUTPUT_FILE, "w") as outputFile:
-				outputFile.write("Genome_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\n")
+				outputFile.write("Genome_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\t" + "Taxonomy\n")
 
 	with open(INPUT_FILE, "r") as inputFile:
 		for record in inputFile:
@@ -166,7 +176,7 @@ def classifySignalGenesInCompons(genomeVersion, signalGenesList,):
 		for category, count in list(categories.items()):
 			resultString = resultString + "\t" + str(count)
 		with open(OUTPUT_FILE, "a") as outputFile:
-			outputFile.write(resultString + "\n")
+			outputFile.write(resultString + "\t" +  GENOME_TO_TAXONOMY[genomeVersion] +"\n")
 
 def classifySignalGenesAcrossCompons(genomeVersion, signal_genes_list):
 	functional_category_to_count = FUNCTIONAL_CATEGORIES.copy()
@@ -182,7 +192,7 @@ def classifySignalGenesAcrossCompons(genomeVersion, signal_genes_list):
 		resultString = resultString + "\t" + str(count)
 	
 	with open(OUTPUT_FILE, "a") as outputFile:
-		outputFile.write(resultString + "\n")
+		outputFile.write(resultString + "\t" + GENOME_TO_TAXONOMY[genomeVersion] +"\n")
 	
 
 ##*********************************************************************##
@@ -298,9 +308,10 @@ def main(argv):
 	if TASK == "classifySignalGenesAcrossCompons" or TASK == "classifySignalGenesInCompons":
 		print ("Identifying and processing Signal genes")
 		processSignalGenes()
-	elif TASK == "identifyDomainCombinsAcrossComps" or TASK == "identifyDomainCombinsAcrossGenomes":
-		print ("Identifying and processing Signal domains")
-		processDomains()
+	# identifyDomainCombinsAcrossComps and identifyDomainCombinsAcrossGenomes are not used in this pipeline
+	# elif TASK == "identifyDomainCombinsAcrossComps" or TASK == "identifyDomainCombinsAcrossGenomes":
+	# 	print ("Identifying and processing Signal domains")
+	# 	processDomains()
 
 	
 

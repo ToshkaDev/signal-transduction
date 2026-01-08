@@ -77,12 +77,12 @@ Most ubiquitious MCP class
 
 
 
+./process_MiST_ST.py -> ./process_MiST_ST_classification.py
 
 
+./process_MiST_ST_classification.py -i testids -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
-./process_MiST_ST.py -i testids -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist
-
-
+./process_MiST_ST_counts.py -i testids -o st_counts -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
 
 

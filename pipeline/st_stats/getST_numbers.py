@@ -110,7 +110,6 @@ def finalizeDataAndPrint():
         data["tcpHHK/tcpHRR"] = data["tcpHHK/tcpHRR"]/data["recordNumber"]
         data["tcpHKTotal/tcpRRTotal"] = data["tcpHKTotal/tcpRRTotal"]/data["recordNumber"]
         dataValues = map(roundToFirstDecim, data.values())
-        #print(taxlevel + "\t" + "\t".join(map(str, dataValues)))
         #And now write data
         with open(OUTPUT_FILE, 'a') as output_file:
             output_file.write(taxlevel + "\t" + "\t".join(map(str, dataValues)) + "\n")

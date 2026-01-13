@@ -1,5 +1,25 @@
 #!/usr/bin/python3
 from collections import OrderedDict
+import sys
+import getopt
+
+USAGE = "\n\nThe script summarizes statistic of chemotacits systems created by the process_MiST_ST_counts.py script.\n\n" + \
+    "python 	" + sys.argv[0] + '''
+    -h || --help               - help
+    -a || --afile              - input file (CheA statistics file). Content example:
+            genomeID	$total	chew	checx	other	F1	F2	F3	F4	F5	F6	F7	F8	F9	F10	F11	F12	F13	F14	F15	F16	F17	Acf	Tfp	Taxonomy
+            GCA_001872605.1	1	1	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__Armatimonadota;c__Abditibacteria;o__CG2-30-59-28;f__CG2-30-59-28;g__CG2-30-59-28;s__CG2-30-59-28 sp001872605
+            GCA_001873295.1	2	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__CG2-30-70-394;c__CG2-30-70-394;o__CG2-30-70-394;f__CG2-30-70-394;g__CG2-30-70-394;s__CG2-30-70-394 sp001873295
+            GCA_002717565.1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__Chloroflexota;c__Dehalococcoidia;o__GCA-2717565;f__GCA-2717565;g__GCA-2717565;s__GCA-2717565 sp002717565
+    -b || --bfile              - input file (CheB statistics file)
+    -r || --rfile              - input file (CheR statistics file) 
+    -z || --zfile              - input file (CheZ statistics file)
+    -d || --dfile              - input file (CheD statistics file)
+    -v || --vfile              - input file (CheV statistics file)
+    -m || --mfile              - input file (MCP statistics file)
+    -t || --taxlevel           - taxonomy level for summarization. One of: species, genus, family, order, class, taxlevel, kingdom, or acorss. 'across' meas across all phyla
+    -o || --ofile              - output file
+    '''
 
 TEMPLATE_TO_COUNTS = OrderedDict([("$total", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), ("recordNumber", 0)])
 CHEA_TO_COUNTS = OrderedDict([("$total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), ("recordNumber", 0)])
@@ -19,13 +39,58 @@ CHEV_FILE_INPUT = "CheV_across_genomes_fullTaxonomy_shortToPhylum.txt"
 MCP_FILE_INPUT = "MCP_across_genomes_fullTaxonomy_shortToPhylum.txt"
 
 INPUT_FILE_TO_DATA = OrderedDict([(CHEA_FILE_INPUT, CHEA_TO_COUNTS), (CHEB_FILE_INPUT, CHEB_TO_COUNTS), (CHER_FILE_INPUT, CHER_TO_COUNTS), (CHEZ_FILE_INPUT, CHEZ_TO_COUNTS), (CHED_FILE_INPUT, CHED_TO_COUNTS), (CHEV_FILE_INPUT, CHEV_TO_COUNTS), (MCP_FILE_INPUT, MCP_TO_COUNTS)])
+INPUT_FILE_TO_COMPONENT = {CHEA_FILE_INPUT: "CheA", CHEB_FILE_INPUT: "CheB", CHER_FILE_INPUT: "CheR", CHEZ_FILE_INPUT: "CheZ", CHED_FILE_INPUT: "CheD", CHEV_FILE_INPUT: "CheV", MCP_FILE_INPUT: "MCP"}
+
 
 GENOME_TO_CHEA_NUMBER = {}
-#GenomeId(0)    Total(1)   OCP_total(2)    TCP_total(3) TCP_HK(4)   TCP_HHK(5)  TCP_RR(6)   TCP_HRR(7)  TCP_Other(8)    ChemSys(9) ECF(10) Other(11)   Taxonomy-Phylum(12)
+
+TAXLEVEL = "phylum"
+TAXONOMY_TO_LEVEL = {"species": 7, "genus": 6, "family": 5, "order": 4, "class": 3, "phylum": 2, "kingdom": 1}
+
+#TAXONOMY_LEVEL_TO_COMPONENT_TO_DATA = {"pylum1": {"CheA": {"total": 0, "F1": 12, ...}, "CheB": {"total": 0, "F1": 12, ...}, }
+TAXONOMY_LEVEL_TO_COMPONENT_TO_DATA = {}
+
+def initialize(argv):
+    global A_FILE, B_FILE, R_FILE, Z_FILE, D_FILE, V_FILE, M_FILE, OUTPUT_FILE, TAXLEVEL
+    try:
+        opts, args = getopt.getopt(argv[1:],"hi:o:t:a:b:r:z:d:v:m:",["help", "afile=", "bfile=", "rfile=", "zfile=", "dfile=", "vfile=", "mfile=", "ofile=", "taxlevel="])
+        if len(opts) == 0:
+            raise getopt.GetoptError("Options are required\n")
+    except getopt.GetoptError as e:
+        print(("===========ERROR==========\n " + str(e) + USAGE))
+        sys.exit(2)
+    try:
+        for opt, arg in opts:
+            if opt in ("-h", "--help"):
+                print(USAGE)
+                sys.exit()
+            elif opt in ("-a", "--afile"):
+                A_FILE = str(arg).strip()
+            elif opt in ("-b", "--bfile"):
+                B_FILE = str(arg).strip()
+            elif opt in ("-r", "--rfile"):
+                R_FILE = str(arg).strip()
+            elif opt in ("-z", "--zfile"):
+                Z_FILE = str(arg).strip()
+            elif opt in ("-d", "--dfile"):
+                D_FILE = str(arg).strip()
+            elif opt in ("-v", "--vfile"):
+                V_FILE = str(arg).strip()
+            elif opt in ("-m", "--mfile"):
+                M_FILE = str(arg).strip()
+            elif opt in ("-o", "--ofile"):
+                OUTPUT_FILE = str(arg).strip()
+            elif opt in ("-t", "--taxlevel"):
+                TAXLEVEL = str(arg).strip().lower()
+                OUTPUT_FILE += "_" + TAXLEVEL
+    except Exception as e:
+        print(("===========ERROR==========\n " + str(e) + USAGE))
+        sys.exit(2)
+
 def processSTstatistics(fileToProcess, data):
-    #phylum_to_data = {"pylum1": {"total": 0, ...}}
-    phylum_to_data = {}
-    phylum = "Across_Phyla"
+    #taxlevel_to_data = {"taxlevel1": {"total": 0, ...}}
+    taxlevel_to_data = {}
+    taxlevel = "Across_Phyla"
     with open (fileToProcess, "r") as inputFile:
         for lineNumber, line in enumerate(inputFile):
             line = line.strip().split("\t")
@@ -33,44 +98,39 @@ def processSTstatistics(fileToProcess, data):
                 if fileToProcess == CHEA_FILE_INPUT:
                     GENOME_TO_CHEA_NUMBER[line[0]] = int(line[1])
                 if GENOME_TO_CHEA_NUMBER[line[0]] >= 1:
-                    if "d__" in line[-1]:
-                        phylum = line[-1]
+                    if TAXLEVEL in TAXONOMY_TO_LEVEL:
+                        taxlevel = ";".join(line[-1].split(";")[:TAXONOMY_TO_LEVEL[TAXLEVEL]])
                     else:
-                        phylum = "Across_Phyla"   
-                    if lineNumber == 1 or (phylum not in phylum_to_data and lineNumber > 1):
-                        phylum_to_data[phylum] = data.copy()
-                        
+                        taxlevel = "Across_Phyla"
+                    if lineNumber == 1 or (taxlevel not in taxlevel_to_data and lineNumber > 1):
+                        taxlevel_to_data[taxlevel] = data.copy()
 
-                    #increment statistics 
-                    #I use num+1 becuase the first column in the input file is a genome identifier
-                    for num, component in enumerate(phylum_to_data[phylum]):                     
-                        if component != "recordNumber":
-                            if fileToProcess != CHEA_FILE_INPUT:
-                                #Devide the numbero of components by the number of chemotaxis systems based on the numbr of cheAs for a given genome
-                                phylum_to_data[phylum][component] += float(line[num+1])/GENOME_TO_CHEA_NUMBER[line[0]]
-                            else:
-                                phylum_to_data[phylum][component] += float(line[num+1])
-                        else:
-                            phylum_to_data[phylum][component]+=1
-          
-    return phylum_to_data
+                #I use num+1 becuase the first column in the input file is a genome identifier,
+                #while elements of INPUT_FILE_TO_DATA[fileToProcess] look like: "total", "F1, F2", etc
+                #There we add 1 to shift by one position after genome identifier. Look at the input file format in USAGE
+                for num, field in enumerate(INPUT_FILE_TO_DATA[fileToProcess]):
+                    TAXONOMY_LEVEL_TO_COMPONENT_TO_DATA[taxlevel][INPUT_FILE_TO_COMPONENT[fileToProcess]]["recordNumber"] += 1
+                    TAXONOMY_LEVEL_TO_COMPONENT_TO_DATA[taxlevel][INPUT_FILE_TO_COMPONENT[fileToProcess]][field] += int(line[num+1])
+
+    return taxlevel_to_data
                     
-def finalizeDataAndPrint(phylum_to_data, inputFile):
+def finalizeDataAndPrint(taxlevel_to_data, inputFile):
     with open (inputFile+"_summary.txt", "w") as outputFile:
-        for phylum, data in phylum_to_data.items():
+        for taxlevel, data in taxlevel_to_data.items():
             for param in data:
                 if param != "recordNumber":
                     data[param] = data[param]/data["recordNumber"]
             dataValues = map(roundToFirstDecim, data.values())
-            outputFile.write(phylum + "\t" + "\t".join(map(str, dataValues)) + "\n")
+            outputFile.write(taxlevel + "\t" + "\t".join(map(str, dataValues)) + "\n")
 
 def roundToFirstDecim(value):
     return round(value, 1)
 	
-def main():
+def main(argv):
+    initialize(argv)
     for inputFile, data in INPUT_FILE_TO_DATA.items():
-        print ("Phylum" + "\t" + "\t".join(data.keys()))
-        phylum_to_data = processSTstatistics(inputFile, data)
-        finalizeDataAndPrint(phylum_to_data, inputFile)
+        print ("axLevel" + "\t" + "\t".join(data.keys()))
+        taxlevel_to_data = processSTstatistics(inputFile, data)
+        finalizeDataAndPrint(taxlevel_to_data, inputFile)
 
-main()
+main(sys.argv)

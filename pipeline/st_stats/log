@@ -86,6 +86,15 @@ Most ubiquitious MCP class
 
 ./getST_numbers.py -i st_counts -o st_counts_sum -t phylum
 ./getST_numbers.py -i st_counts -o st_counts_sum -t class
+./getST_numbers_chemo.py -a process_MiST_ST_counts_CheA_across_genomes.txt -b process_MiST_ST_counts_CheB_across_genomes.txt -r process_MiST_ST_counts_CheR_across_genomes.txt -z process_MiST_ST_counts_CheZ_across_genomes.txt -d process_MiST_ST_counts_CheD_across_genomes.txt -v process_MiST_ST_counts_CheV_across_genomes.txt -m process_MiST_ST_counts_MCP_across_genomes.txt -o chemo_st_counts_sum -t phylum
+
+A_FILE = "process_MiST_ST_counts_CheA_across_genomes.txt"
+B_FILE = "process_MiST_ST_counts_CheB_across_genomes.txt"
+R_FILE = "process_MiST_ST_counts_CheR_across_genomes.txt"
+Z_FILE = "process_MiST_ST_counts_CheZ_across_genomes.txt"
+D_FILE = "process_MiST_ST_counts_CheD_across_genomes.txt"
+V_FILE = "process_MiST_ST_counts_CheV_across_genomes.txt"
+MCP_FILE = "process_MiST_ST_counts_MCP_across_genomes.txt"
 
 
 

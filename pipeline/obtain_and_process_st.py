@@ -15,13 +15,14 @@ USAGE = "\n\nThe script queries MiST db via it's API for histidine kinases and r
 	-h || --help               - help
 	-d || --dsource            - data source: mistdb (MiST; default) or rmodels (Pfam HMMs with relaxed thresholds) 
 	-i || --ifile              - input file
-	-f || --ffile              - first output file
-	-s || --sfile              - second output file
-	-t || --tfile              - third output file
+	-f || --ffile              - first output file (HKs)
+	-s || --sfile              - second output file (RRs)
+	-t || --tfile              - third output file (OCPs)
+	-m || --mfile              - forth output file (MCPs)
 	-b || --dbase              - specify database: mist or mist-mags
 	-c || --continue           - start a new analysis or continue with allready existing provided files.
-	                             Users are simply expected to specify -c (--continue) without provinding arguments.
-	                             Default is without this paraeter specified, i.e. start a new analysis.
+	                             Users are simply expected to specify -c (--continue) without providing arguments.
+	                             Default is without this parameter specified, i.e. start a new analysis.
 '''
 
 #Variables controlled by the script parameters
@@ -31,12 +32,14 @@ INPUT_FILE = None
 OUTPUT_FILE1 = "output_HK.tsv"
 OUTPUT_FILE2 = "output_RR.tsv"
 OUTPUT_FILE3 = "output_OCP.tsv"
+OUTPUT_FILE4 = "output_MCP.tsv"
 CONTINUE = False
 
 #Variables set within the script
-PROTEIN_TYPE_CHOICES = ["hk", "rr", "ocp"]
+ST_SYSTEMS = ["tcp", "ocp", "chemotaxis"]
+PROTEIN_TYPE_CHOICES = ["hk", "rr", "ocp", "mcp"]
 PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2, \
-						   PROTEIN_TYPE_CHOICES[2]: OUTPUT_FILE3}
+						   PROTEIN_TYPE_CHOICES[2]: OUTPUT_FILE3, PROTEIN_TYPE_CHOICES[3]: OUTPUT_FILE4}
 GENOME_VERSIONS = None
 TIMEOUT_FILE = "timeout_genomes.txt"
 DATABASE = "mist"
@@ -53,15 +56,16 @@ SIGNAL_GENES_HHK = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=
 SIGNAL_GENES_RR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,rr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_HRR = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=tcp,hrr&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 SIGNAL_GENES_OCP = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=ocp&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
+SIGNAL_GENES_MCP = "/signal-genes?where.component_id=%COMPONENT_ID%&where.ranks=mcp&count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
 HIS_KINASE_DIM_DOMAINS = ["HisKA", "HisKA_2", "HisKA_3", "H-kinase_dim", "His_kinase"]
 HIS_KINASE_CATAL_DOMAINS = ["HATPase_c", "HATPase_c_2", "HATPase_c_5", "HWE_HK"]
 RESPONSE_REG_DOMAINS = ["Response_reg", "FleQ"]
 
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, OUTPUT_FILE3, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE, SOURCE
+	global INPUT_FILE, OUTPUT_FILE1, OUTPUT_FILE2, OUTPUT_FILE3, OUTPUT_FILE4, GENOME_VERSIONS, PROTEIN_TYPE_TO_OUTFILE, DATABASE, CONTINUE, SOURCE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hd:i:f:s:t:b:c",["help", "dsource=", "ifile=", "ffile=", "sfile=", "tfile=", "dbase=", "continue"])
+		opts, args = getopt.getopt(argv[1:],"hd:i:f:s:t:m:b:c",["help", "dsource=", "ifile=", "ffile=", "sfile=", "tfile=", "mfile=", "dbase=", "continue"])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -83,6 +87,8 @@ def initialize(argv):
 				OUTPUT_FILE2 = str(arg).strip()
 			elif opt in ("-t", "--tfile"):
 				OUTPUT_FILE3 = str(arg).strip()
+			elif opt in ("-m", "--mfile"):
+				OUTPUT_FILE4 = str(arg).strip()
 			elif opt in ("-b", "--dbase"):
 				DATABASE = str(arg).strip()
 				if DATABASE not in DATABASE_TO_URL:
@@ -95,7 +101,7 @@ def initialize(argv):
 		sys.exit(2)
 	#Initialize the dictionary with the provided files
 	PROTEIN_TYPE_TO_OUTFILE = {PROTEIN_TYPE_CHOICES[0]: OUTPUT_FILE1, PROTEIN_TYPE_CHOICES[1]: OUTPUT_FILE2, \
-							PROTEIN_TYPE_CHOICES[2]: OUTPUT_FILE3}
+							PROTEIN_TYPE_CHOICES[2]: OUTPUT_FILE3, PROTEIN_TYPE_CHOICES[3]: OUTPUT_FILE4}
 	if not CONTINUE:
 		#Create ouput files and write headers:
 		for oFile in PROTEIN_TYPE_TO_OUTFILE.values():
@@ -116,6 +122,8 @@ def retrieveSignalGenesFromMist(genomeVersion, additionaFieldsTemplate):
 		sensorRegulatorType = "hrr"
 	elif additionaFieldsTemplate == SIGNAL_GENES_OCP:
 		sensorRegulatorType = "ocp"
+	elif additionaFieldsTemplate == SIGNAL_GENES_MCP:
+		sensorRegulatorType = "mcp"
 	genomeURL = DATABASE_TO_URL[DATABASE] + genomeVersion
 	#Get stp-matrix and look at the number of components and save those components that have two- or one-component systems.
 	#They will be saved in componentsWithST list.
@@ -171,11 +179,14 @@ def signalGenesRetriever(url, elementList, genomeVersion, stMatrix, noDataAnymor
 			time.sleep(5)
 			LOGGER.info("Continue.")
 			continue
-			
+		# First we analyze stMatrix to retrieve components with ST systems
+		# stMatrix can be one of tcp, ocp, chemotaxis, or False. If it is False, then we retrieve signal genes
 		if stMatrix:
-			if "tcp" in resultAsJson["counts"] or "ocp" in resultAsJson["counts"]:
+			if any(stsystme in resultAsJson["counts"] for stsystme in ST_SYSTEMS):
 				for component in resultAsJson["components"]:
-					if ("tcp" in component["counts"] and stMatrix in component["counts"]["tcp"]) or "ocp" in component["counts"]:
+					if ("tcp" in component["counts"] and stMatrix in component["counts"]["tcp"]) \
+						or "ocp" in component["counts"] \
+						or ("chemotaxis" in component["counts"] and stMatrix in component["counts"]["chemotaxis"]):
 						elementList.append(component)
 		else:
 			elementList.extend(resultAsJson)
@@ -196,6 +207,7 @@ def processDomains():
 				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_RR), PROTEIN_TYPE_CHOICES[1]))
 				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_HRR), PROTEIN_TYPE_CHOICES[1]))
 				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_OCP), PROTEIN_TYPE_CHOICES[2]))
+				listOfSignalGeneLists.append((retrieveSignalGenesFromMist(genomeVersion, SIGNAL_GENES_MCP), PROTEIN_TYPE_CHOICES[3]))
 				for signalGeneList in listOfSignalGeneLists:
 					for gene in signalGeneList[0]:
 						prepareDomains(gene, genomeVersion, signalGeneList[1])

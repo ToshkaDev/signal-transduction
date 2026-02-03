@@ -1,0 +1,1 @@
+python3 obtain_and_process_st.py -d mistdb -i ./test/testids -f ./test/hk.tsv -s ./test/rr.tsv -t ./test/ocp.tsv -m ./test/mcp.tsv -b mist

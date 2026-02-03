@@ -30,6 +30,7 @@ prepare_files() {
 		tar xvf ${OFOLDER}/ocp_bacteria_all1.tsv.tar.gz -C ${OFOLDER}/
 		tar xvf ${OFOLDER}/ocp_bacteria_all2.tsv.tar.gz -C ${OFOLDER}/
 		tar xvf ${OFOLDER}/ocp_bacteria_all3.tsv.tar.gz -C ${OFOLDER}/
+        tar xvf ${OFOLDER}/mcp.tar.gz -C ${OFOLDER}/
 		# Concatenate ocp_bacteria_all* files
 		cat ${OFOLDER}/ocp_bacteria_all1.tsv ${OFOLDER}/ocp_bacteria_all2.tsv ${OFOLDER}/ocp_bacteria_all3.tsv > ${OFOLDER}/ocp_bacteria_all.tsv
 
@@ -37,7 +38,8 @@ prepare_files() {
 		echo $'genome\tgenome_accession\tncbi_protein_accession\tmist_protein_accession\tprotein_type\tsource\tprotein_length\t'\
 			$'domain_architecture\tsensors_or_regulators\tdomain_counts\tdomains' | sed 's/ //g' > ${OFOLDER}/per_protein_combined_db.tsv
 		cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv \
-			${OFOLDER}/ocp_archaea_all.tsv ${OFOLDER}/ocp_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
+			${OFOLDER}/ocp_archaea_all.tsv ${OFOLDER}/ocp_bacteria_all.tsv \
+            ${OFOLDER}/mcp_archaea_all.tsv ${OFOLDER}/mcp_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
 	fi
 }
 
@@ -103,7 +105,8 @@ initialize_scripts_and_folders() {
 	check_create "${ATFOLDER}"
 }
 
-# Obtain and perform the first step analysis of two-component (hk - histidine kinase, rr - response regulator) and one-component systems
+# Obtain and perform the first step analysis of:
+# two-component (hk - histidine kinase, rr - response regulator), one-component, and chemotaxis systems (mcp - methyl-accepting chemotaxis proteins)
 obtain() {
 	echo "1. Fetching signal transduction systems (ST) from MiST ..."
 	echo "1.1. Fetching archaeal signal transduction systems ..."
@@ -114,11 +117,13 @@ obtain() {
 			-f ${OFOLDER}/hk_archaea_$db.tsv \
 			-s ${OFOLDER}/rr_archaea_$db.tsv \
 			-t ${OFOLDER}/ocp_archaea_$db.tsv \
+            -m ${OFOLDER}/mcp_archaea_$db.tsv \
 			-b $db
-		# Put results from $DB into one file for each his kinase (hk) and resp regulators (rr)
+		# Put results from $DB into one file for each his kinase (hk) and resp regulator (rr)
 		sed '1d' ${OFOLDER}/hk_archaea_$db.tsv >> ${OFOLDER}/hk_archaea_all.tsv
 		sed '1d' ${OFOLDER}/rr_archaea_$db.tsv >> ${OFOLDER}/rr_archaea_all.tsv
 		sed '1d' ${OFOLDER}/ocp_archaea_$db.tsv >> ${OFOLDER}/ocp_archaea_all.tsv
+        sed '1d' ${OFOLDER}/mcp_archaea_$db.tsv >> ${OFOLDER}/mcp_archaea_all.tsv
 	done
 
 	echo "1.2. Fetching bacterial signal transduction systems ..."
@@ -129,18 +134,20 @@ obtain() {
 			-f ${OFOLDER}/hk_bacteria_$db.tsv \
 			-s ${OFOLDER}/rr_bacteria_$db.tsv \
 			-t ${OFOLDER}/ocp_bacteria_$db.tsv \
+            -m ${OFOLDER}/mcp_bacteria_$db.tsv \
 			-b $db
-		# Put results from $DB into one file for each his kinase (hk) and resp regulators (rr)
+		# Put results from $DB into one file for each his kinase (hk) and resp regulator (rr)
 		sed '1d' ${OFOLDER}/hk_bacteria_$db.tsv >> ${OFOLDER}/hk_bacteria_all.tsv
 		sed '1d' ${OFOLDER}/rr_bacteria_$db.tsv >> ${OFOLDER}/rr_bacteria_all.tsv
 		sed '1d' ${OFOLDER}/ocp_bacteria_$db.tsv >> ${OFOLDER}/ocp_bacteria_all.tsv
+        sed '1d' ${OFOLDER}/mcp_bacteria_$db.tsv >> ${OFOLDER}/mcp_bacteria_all.tsv
 	done
 
 	# Prepare the database file
 	echo $'genome\tgenome_accession\tncbi_protein_accession\tmist_protein_accession\tprotein_type\tsource\tprotein_length\t'\
 		$'domain_architecture\tsensors_or_regulators\tdomain_counts\tdomains' | sed 's/ //g' > ${OFOLDER}/per_protein_combined_db.tsv
 	cat ${OFOLDER}/hk_archaea_all.tsv ${OFOLDER}/rr_archaea_all.tsv ${OFOLDER}/hk_bacteria_all.tsv ${OFOLDER}/rr_bacteria_all.tsv \
-		${OFOLDER}/ocp_archaea_all.tsv ${OFOLDER}/ocp_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
+		${OFOLDER}/ocp_archaea_all.tsv ${OFOLDER}/ocp_bacteria_all.tsv ${OFOLDER}/mcp_archaea_all.tsv ${OFOLDER}/mcp_bacteria_all.tsv >> ${OFOLDER}/per_protein_combined_db.tsv
 
 }
 
@@ -163,7 +170,7 @@ analyze_systems_by_genome() {
 	echo "2. Analyzing signal transduction systems by genome ..."
 	for efile in ${OFOLDER}/*all.tsv; do
 		edfile=${efile##*/}
-		# One of: 'hk', 'rr', 'ocp'
+		# One of: 'hk', 'rr', 'ocp', 'mcp'
 		ptype=${edfile%%_*}
 		./pipeline/${ANALYZEG} \
 			-i ${efile} \
@@ -189,7 +196,7 @@ analyze_systems_by_taxon() {
 	levels=("species" "genus" "family" "order" "class" "phylum" "kingdom")
 	for level in ${levels[@]}; do
 		for efile in ${AGFOLDER}/*p.tsv; do
-			# ./results/hk_archaea_all_superfamily_comb_p.tsv -> hk_archaea_all_superfamily_comb_p.tsv
+			# Ex., ./results/hk_archaea_all_superfamily_comb_p.tsv -> hk_archaea_all_superfamily_comb_p.tsv
 			edfile=${efile##*/}
 			# hk_archaea_all_superfamily_comb_p.tsv -> hk_archaea_all_superfamily_comb.tsv
 			edfile=${edfile%_*}.tsv

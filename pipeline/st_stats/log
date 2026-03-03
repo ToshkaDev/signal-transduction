@@ -80,13 +80,13 @@ Most ubiquitious MCP class
 ./process_MiST_ST.py -> ./process_MiST_ST_classification.py
 
 
-./process_MiST_ST_classification.py -i testids -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
+./process_MiST_ST_classification.py -i ../test/testids.txt -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
-./process_MiST_ST_counts.py -i testids -o st_counts -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
+./process_MiST_ST_counts.py -i ../test/testids.txt -o st_counts -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
 ./getST_numbers.py -i st_counts -o st_counts_sum -t phylum
 ./getST_numbers.py -i st_counts -o st_counts_sum -t class
-./getST_numbers_chemo.py -a process_MiST_ST_counts_CheA_across_genomes.txt -b process_MiST_ST_counts_CheB_across_genomes.txt -r process_MiST_ST_counts_CheR_across_genomes.txt -z process_MiST_ST_counts_CheZ_across_genomes.txt -d process_MiST_ST_counts_CheD_across_genomes.txt -v process_MiST_ST_counts_CheV_across_genomes.txt -m process_MiST_ST_counts_MCP_across_genomes.txt -o chemo_st_counts_sum -t phylum
+./getST_numbers_chemo.py -a process_MiST_ST_counts_CheA_across_genomes.txt -b process_MiST_ST_counts_CheB_across_genomes.txt -r process_MiST_ST_counts_CheR_across_genomes.txt -z process_MiST_ST_counts_CheZ_across_genomes.txt -d process_MiST_ST_counts_CheD_across_genomes.txt -v process_MiST_ST_counts_CheV_across_genomes.txt -m process_MiST_ST_counts_MCP_across_genomes.txt -t phylum
 
 A_FILE = "process_MiST_ST_counts_CheA_across_genomes.txt"
 B_FILE = "process_MiST_ST_counts_CheB_across_genomes.txt"

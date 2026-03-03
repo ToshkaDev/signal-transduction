@@ -124,6 +124,7 @@ def retrieveSignalGenesFromMist(genomeVersion):
 					with open (TIMEOUT_FILE, "a") as timeoutFile:
 						LOGGER.info("Ten attempts to retrieve data were unsuccessful. Save the genome caused the problem to %s file", TIMEOUT_FILE)
 						timeoutFile.write(genomeVersion + "\n")
+						noDataAnymore = True
 				#sleep 5 seconds if gateway timeout happened
 				LOGGER.error("Timeout error: %s", error)
 				LOGGER.info("Attempt " + str(iteration) + ". Sleep for 5 seconds...")

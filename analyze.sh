@@ -2,6 +2,7 @@
 
 declare -A DB=(["MiST"]="mist" ["MetaMiST"]="mist-mags")
 REPR_FILE="./input/repr_set_v214_Oct2024_MiST_MetaMiST.tsv"
+#REPR_FILE="./pipeline/test/testids.txt"
 
 check_create() {
 	[ ! -d $1 ] && mkdir $1

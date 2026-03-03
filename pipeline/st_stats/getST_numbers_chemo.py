@@ -3,22 +3,24 @@ from collections import OrderedDict
 import sys
 import getopt
 
-USAGE = "\n\nThe script summarizes statistic of chemotaxis systems created by the process_MiST_ST_counts.py script.\n\n" + \
+USAGE = "\n\nThe script summarizes statistic of chemotaxis systems created by the process_MiST_ST_counts.py script.\n" + \
+    "For each taxonomy level (species, genus, family, order, class, phylum, kingdom) it calculates the average number of each chemotaxis system component per genome.\n" + \
     "python 	" + sys.argv[0] + '''
     -h || --help               - help
-    -a || --afile              - input file (CheA statistics file). Content example:
-            genomeID	$total	chew	checx	other	F1	F2	F3	F4	F5	F6	F7	F8	F9	F10	F11	F12	F13	F14	F15	F16	F17	Acf	Tfp	Taxonomy
-            GCA_001872605.1	1	1	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__Armatimonadota;c__Abditibacteria;o__CG2-30-59-28;f__CG2-30-59-28;g__CG2-30-59-28;s__CG2-30-59-28 sp001872605
-            GCA_001873295.1	2	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__CG2-30-70-394;c__CG2-30-70-394;o__CG2-30-70-394;f__CG2-30-70-394;g__CG2-30-70-394;s__CG2-30-70-394 sp001873295
-            GCA_002717565.1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__Chloroflexota;c__Dehalococcoidia;o__GCA-2717565;f__GCA-2717565;g__GCA-2717565;s__GCA-2717565 sp002717565
+    -a || --afile              - input file (CheA statistics file).    
     -b || --bfile              - input file (CheB statistics file)
     -r || --rfile              - input file (CheR statistics file) 
     -z || --zfile              - input file (CheZ statistics file)
     -d || --dfile              - input file (CheD statistics file)
     -v || --vfile              - input file (CheV statistics file)
     -m || --mfile              - input file (MCP statistics file)
-    -t || --taxlevel           - taxonomy level for summarization. One of: species, genus, family, order, class, taxlevel, kingdom, or acorss. 'across' meas across all phyla
-    -o || --ofile              - output file
+    -t || --taxlevel           - taxonomy level for summarization. One of: species, genus, family, order, class, taxlevel, kingdom, or acorss. 'across' means across all phyla.
+
+    Input files are tab delimited and have the following format (ex., -a file, CheA statistics file):
+    genomeID	$total	chew	checx	other	F1	F2	F3	F4	F5	F6	F7	F8	F9	F10	F11	F12	F13	F14	F15	F16	F17	Acf	Tfp	Taxonomy
+    GCA_001872605.1	1	1	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__Armatimonadota;c__Abditibacteria;o__CG2-30-59-28;f__CG2-30-59-28;g__CG2-30-59-28;s__CG2-30-59-28 sp001872605
+    GCA_001873295.1	2	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__CG2-30-70-394;c__CG2-30-70-394;o__CG2-30-70-394;f__CG2-30-70-394;g__CG2-30-70-394;s__CG2-30-70-394 sp001873295
+    GCA_002717565.1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	d__Bacteria;p__Chloroflexota;c__Dehalococcoidia;o__GCA-2717565;f__GCA-2717565;g__GCA-2717565;s__GCA-2717565 sp002717565
     '''
 
 TEMPLATE_TO_COUNTS = OrderedDict([("$total", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), ("recordNumber", 0)])
@@ -46,9 +48,9 @@ TAXLEVEL = "phylum"
 TAXONOMY_TO_LEVEL = {"species": 7, "genus": 6, "family": 5, "order": 4, "class": 3, "phylum": 2, "kingdom": 1}
 
 def initialize(argv):
-    global A_FILE, B_FILE, R_FILE, Z_FILE, D_FILE, V_FILE, MCP_FILE, OUTPUT_FILE, TAXLEVEL
+    global A_FILE, B_FILE, R_FILE, Z_FILE, D_FILE, V_FILE, MCP_FILE, TAXLEVEL
     try:
-        opts, args = getopt.getopt(argv[1:],"hi:o:t:a:b:r:z:d:v:m:",["help", "afile=", "bfile=", "rfile=", "zfile=", "dfile=", "vfile=", "mfile=", "ofile=", "taxlevel="])
+        opts, args = getopt.getopt(argv[1:],"hi:t:a:b:r:z:d:v:m:",["help", "afile=", "bfile=", "rfile=", "zfile=", "dfile=", "vfile=", "mfile=", "taxlevel="])
         if len(opts) == 0:
             raise getopt.GetoptError("Options are required\n")
     except getopt.GetoptError as e:
@@ -73,11 +75,8 @@ def initialize(argv):
                 V_FILE = str(arg).strip()
             elif opt in ("-m", "--mfile"):
                 MCP_FILE = str(arg).strip()
-            elif opt in ("-o", "--ofile"):
-                OUTPUT_FILE = str(arg).strip()
             elif opt in ("-t", "--taxlevel"):
                 TAXLEVEL = str(arg).strip().lower()
-                OUTPUT_FILE += "_" + TAXLEVEL
     except Exception as e:
         print(("===========ERROR==========\n " + str(e) + USAGE))
         sys.exit(2)
@@ -108,8 +107,8 @@ def processSTstatistics(fileToProcess, data):
 
     return taxlevel_to_data
 
-def finalizeDataAndPrint(taxlevel_to_data, inputFile, data):
-    with open (inputFile+"_summary.txt", "a") as output_file:
+def finalizeDataAndSave(taxlevel_to_data, inputFile, data):
+    with open (inputFile.split(".")[0]+"_"+TAXLEVEL, "a") as output_file:
         output_file.write("taxLevel" + "\t" + "\t".join(data.keys()) + "\n")
 
         for taxlevel, data in taxlevel_to_data.items():
@@ -127,6 +126,6 @@ def main(argv):
     for inputFile, data in INPUT_FILE_TO_DATA.items():
         print ("taxLevel" + "\t" + "\t".join(data.keys()))
         taxlevel_to_data = processSTstatistics(inputFile, data)
-        finalizeDataAndPrint(taxlevel_to_data, inputFile, data)
+        finalizeDataAndSave(taxlevel_to_data, inputFile, data)
 
 main(sys.argv)

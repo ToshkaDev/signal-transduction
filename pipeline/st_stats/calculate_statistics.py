@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import sys
 import getopt
+import re
 from collections import OrderedDict
 
 USAGE = "\n\nThe script summarizes statistic created by the process_MiST_ST_counts.py script.\n\n" + \
@@ -17,6 +18,9 @@ USAGE = "\n\nThe script summarizes statistic created by the process_MiST_ST_coun
 INPUT_FILE = None
 OUTPUT_FILE = "st_stats_summary.txt"
 TAXLEVEL = "phylum"
+SOURCE = "mistdb"
+#Major mode ("mm") table (see the MiST database for details)
+PROTEIN_TYPE = "mm"
 
 TAXONOMY_TO_LEVEL = {"species": 7, "genus": 6, "family": 5, "order": 4, "class": 3, "phylum": 2, "kingdom": 1}
 #TAXONOMY_LEVEL_TO_DATA = {"pylum1": {"total": 0, ...}}
@@ -24,7 +28,6 @@ TAXONOMY_LEVEL_TO_DATA = {}
 DATA = OrderedDict([("total", 0), ("ocpTotal", 0), ("tcpTotal", 0), ("tcpHKTotal", 0), ("tcpRRTotal", 0), ("tcpHK", 0), ("tcpHHK", 0), ("tcpRR", 0), ("tcpHRR", 0), \
                     ("tcpTotal/ocpTotal", 0), ("tcpHKTotal/tcpRRTotal", 0), ("tcpHK/tcpRR", 0), ("tcpHHK/tcpHRR", 0), \
                     ("tcpOther", 0), ("chemSys", 0), ("ecf", 0), ("other", 0), ("recordNumber", 0)])
-
 
 def initialize(argv):
     global INPUT_FILE, OUTPUT_FILE, TAXLEVEL
@@ -52,17 +55,18 @@ def initialize(argv):
         sys.exit(2)
             
 def processSTstatistics():
+    # regex to remove prefix .__ (like d__, p__, etc. from the GTDB taxonomomy string)
+    regex=r'.__'
     with open (INPUT_FILE, "r") as inputFile:
         for lineNumber, line in enumerate(inputFile):
             if lineNumber > 0:
                 line = line.strip().split("\t")
-                if TAXLEVEL in TAXONOMY_TO_LEVEL:
-                    taxlevel = ";".join(line[-1].split(";")[:TAXONOMY_TO_LEVEL[TAXLEVEL]])
-                else:
-                    taxlevel = "Across_Phyla"
+                taxlevel = ";".join(line[-1].split(";")[:TAXONOMY_TO_LEVEL[TAXLEVEL]])
+                taxlevel = re.sub(regex, "", taxlevel)
+
                 if lineNumber == 1 or (lineNumber > 1 and taxlevel not in TAXONOMY_LEVEL_TO_DATA):
                     TAXONOMY_LEVEL_TO_DATA[taxlevel] = DATA.copy()
-                    
+
                 TAXONOMY_LEVEL_TO_DATA[taxlevel]["recordNumber"] += 1
                 TAXONOMY_LEVEL_TO_DATA[taxlevel]["total"] += int(line[1])
                 TAXONOMY_LEVEL_TO_DATA[taxlevel]["ocpTotal"] += int(line[2])
@@ -112,7 +116,7 @@ def finalizeDataAndPrint():
         dataValues = map(roundToFirstDecim, data.values())
         #And now write data
         with open(OUTPUT_FILE, 'a') as output_file:
-            output_file.write(taxlevel + "\t" + "\t".join(map(str, dataValues)) + "\n")
+            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL, SOURCE, PROTEIN_TYPE]) + "\t" + "\t".join(map(str, dataValues)) + "\n")
 
 def roundToFirstDecim(value):
     return round(value, 1)

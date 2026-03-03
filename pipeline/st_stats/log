@@ -77,24 +77,24 @@ Most ubiquitious MCP class
 
 
 
-./process_MiST_ST.py -> ./process_MiST_ST_classification.py
+./process_MiST_ST_classification.py -> get_and_classify.py
 
 
-./process_MiST_ST_classification.py -i ../test/testids.txt -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
+./get_and_classify.py -i ../test/testids.txt -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
-./process_MiST_ST_counts.py -i ../test/testids.txt -o st_counts -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
+./get_counts.py -i ../test/testids.txt -o st_counts -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
-./getST_numbers.py -i st_counts -o st_counts_sum -t phylum
-./getST_numbers.py -i st_counts -o st_counts_sum -t class
-./getST_numbers_chemo.py -a process_MiST_ST_counts_CheA_across_genomes.txt -b process_MiST_ST_counts_CheB_across_genomes.txt -r process_MiST_ST_counts_CheR_across_genomes.txt -z process_MiST_ST_counts_CheZ_across_genomes.txt -d process_MiST_ST_counts_CheD_across_genomes.txt -v process_MiST_ST_counts_CheV_across_genomes.txt -m process_MiST_ST_counts_MCP_across_genomes.txt -t phylum
+./calculate_statistics.py -i st_counts -o st_counts_sum -t phylum
+./calculate_statistics.py -i st_counts -o st_counts_sum -t class
+./calculate_statistics_chemo.py -a get_counts_CheA_across_genomes.txt -b get_counts_CheB_across_genomes.txt -r get_counts_CheR_across_genomes.txt -z get_counts_CheZ_across_genomes.txt -d get_counts_CheD_across_genomes.txt -v get_counts_CheV_across_genomes.txt -m get_counts_MCP_across_genomes.txt -t phylum
 
-A_FILE = "process_MiST_ST_counts_CheA_across_genomes.txt"
-B_FILE = "process_MiST_ST_counts_CheB_across_genomes.txt"
-R_FILE = "process_MiST_ST_counts_CheR_across_genomes.txt"
-Z_FILE = "process_MiST_ST_counts_CheZ_across_genomes.txt"
-D_FILE = "process_MiST_ST_counts_CheD_across_genomes.txt"
-V_FILE = "process_MiST_ST_counts_CheV_across_genomes.txt"
-MCP_FILE = "process_MiST_ST_counts_MCP_across_genomes.txt"
+A_FILE = "get_counts_CheA_across_genomes.txt"
+B_FILE = "get_counts_CheB_across_genomes.txt"
+R_FILE = "get_counts_CheR_across_genomes.txt"
+Z_FILE = "get_counts_CheZ_across_genomes.txt"
+D_FILE = "get_counts_CheD_across_genomes.txt"
+V_FILE = "get_counts_CheV_across_genomes.txt"
+MCP_FILE = "get_counts_MCP_across_genomes.txt"
 
 
 

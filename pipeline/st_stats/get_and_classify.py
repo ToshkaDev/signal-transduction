@@ -18,14 +18,14 @@ USAGE = "\n\nThe script queries MiST db via it's API for signal transduction in 
 	-t || --task               - what to do. One of the following:
 								 identifyDomainCombinsAcrossComps, identifyDomainCombinsAcrossGenomes; classifySignalGenesAcrossCompons, classifySignalGenesInCompons
 	-b || --dbase              - specify database: mist or mist-mags
-	-g || --gtdbmeta           - GTDB metadata filed prepared by the SIGNAL pipeline
 	'''
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename=sys.argv[0].replace(".py", "") + "_log.txt", level=logging.INFO)
 TIMEOUT_FILE = sys.argv[0].replace(".py", "")  + "_timeout_info.txt"
 
-FUNCTIONAL_CATEGORIES = collections.OrderedDict([("TR", 0), ("K/P", 0), ("PP", 0), ("UNK", 0), ("DNA_UNK", 0), ("Che", 0)])
+# tr - transcription regulators, k_p - kinase/phosphotase, pp - protein-protein interactions, unk - unknown, dna_unk - DNA unknown, che - chemotaxis
+FUNCTIONAL_CATEGORIES = collections.OrderedDict([("tr", 0), ("k_p", 0), ("pp", 0), ("unk", 0), ("dna_unk", 0), ("che", 0)])
 
 HEADER_TO_INDEX_IN_ST_FILE = \
 	{"Classification_marker": 0, "Definition":1, "Domain_name":2, "Pfam_clan_(superfamily)":3, \
@@ -41,19 +41,16 @@ METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
 DATABASE_TO_URL = {"mist": GENOMES_URL, "mist-mags": METAGENOMES_URL}
 SIGNAL_GENES_ADDITIONAL_FIELDS = "/signal-genes?count&page=%PAGE%&per_page=100&fields.Gene.Aseq=pfam31"
 
-GTDB_METADATA_FILE = "../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv"
 INPUT_FILE = None
 ST_INPUT_FILE = None
 OUTPUT_FILE = None
 OUTPUT_FILE2 = None
 TASK = None
 
-GENOME_TO_TAXONOMY = {}
-
 def initialize(argv):
-	global INPUT_FILE, OUTPUT_FILE, OUTPUT_FILE2, ST_INPUT_FILE, TASK, DATABASE, GTDB_METADATA_FILE
+	global INPUT_FILE, OUTPUT_FILE, OUTPUT_FILE2, ST_INPUT_FILE, TASK, DATABASE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:s:o:p:t:b:g:",["help", "ifile=", "sfile=", "ofile=", "pfile=", "task=", "dbase=", "gtdbmeta="])
+		opts, args = getopt.getopt(argv[1:],"hi:s:o:p:t:b:g:",["help", "ifile=", "sfile=", "ofile=", "pfile=", "task=", "dbase="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -79,16 +76,9 @@ def initialize(argv):
 				if DATABASE not in DATABASE_TO_URL:
 					print ("Database should be one of the following: " + ", ".join(DATABASE_TO_URL.keys()))
 					sys.exit(2)
-			elif opt in ("-g", "--gtdbmeta"):
-				GTDB_METADATA_FILE = str(arg).strip()
 	except Exception as e:
 		print("===========ERROR==========\n " + str(e) + USAGE)
 		sys.exit(2)
-
-	with open(GTDB_METADATA_FILE) as gtdbMetaFile:
-		for line in gtdbMetaFile:
-			line_s = line.split("\t")
-			GENOME_TO_TAXONOMY[line_s[0]] = line_s[4]
 
 def initialyzeSTCollection():
 	with open(ST_INPUT_FILE, "r") as stInputFile:
@@ -142,11 +132,11 @@ def processSignalGenes():
 	if TASK == "classifySignalGenesInCompons":
 		if not os.path.exists(OUTPUT_FILE):
 			with open(OUTPUT_FILE, "w") as outputFile:
-				outputFile.write("Genome_Version\tComponent_Name\tComponent_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\t" + "Taxonomy\n")
+				outputFile.write("Genome_Version\tGenome_Accession\tComponent_Name\tComponent_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\n")
 	elif TASK == "classifySignalGenesAcrossCompons":
 		if not os.path.exists(OUTPUT_FILE):
 			with open(OUTPUT_FILE, "w") as outputFile:
-				outputFile.write("Genome_Version\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\t" + "Taxonomy\n")
+				outputFile.write("genome\tgenome_accession\t" + "\t".join(list(FUNCTIONAL_CATEGORIES.keys())) + "\n")
 
 	with open(INPUT_FILE, "r") as inputFile:
 		for record in inputFile:
@@ -177,11 +167,11 @@ def classifySignalGenesInCompons(genomeVersion, signalGenesList,):
 		for category, count in list(categories.items()):
 			resultString = resultString + "\t" + str(count)
 		with open(OUTPUT_FILE, "a") as outputFile:
-			outputFile.write(resultString + "\t" +  GENOME_TO_TAXONOMY[genomeVersion] +"\n")
+			outputFile.write(resultString + "\n")
 
 def classifySignalGenesAcrossCompons(genomeVersion, signal_genes_list):
 	functional_category_to_count = FUNCTIONAL_CATEGORIES.copy()
-	resultString = genomeVersion
+	resultString = genomeVersion + "\t" + genomeVersion.split(".")[0]
 	for gene in signal_genes_list:
 		if "counts" in gene:
 			for domain in gene["counts"]:
@@ -193,7 +183,7 @@ def classifySignalGenesAcrossCompons(genomeVersion, signal_genes_list):
 		resultString = resultString + "\t" + str(count)
 	
 	with open(OUTPUT_FILE, "a") as outputFile:
-		outputFile.write(resultString + "\t" + GENOME_TO_TAXONOMY[genomeVersion] +"\n")
+		outputFile.write(resultString + "\n")
 	
 
 ##*********************************************************************##

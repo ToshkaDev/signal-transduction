@@ -15,7 +15,6 @@ USAGE = "\n\nThe script queries MiST database via it's API for the counts of sig
 	-i || --ifile              - input file
 	-o || --ofile              - output file
 	-b || --dbase              - specify database: mist or mist-mags
-	-g || --gtdbmeta           - GTDB metadata filed prepared by the SIGNAL pipeline 
 	'''
 
 LOGGER = logging.getLogger(__name__)
@@ -26,7 +25,6 @@ INPUT_FILE = None
 OUTPUT_FILE = None
 
 DATABASE = "mist"
-GTDB_METADATA_FILE = "../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv"
 
 GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
 METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
@@ -51,8 +49,6 @@ MCP_TO_COUNTS = OrderedDict([("$total", 0), ("64H", 0), ("58H", 0), ("52H", 0), 
 
 OUTPU_FILE_TO_DICT = OrderedDict([(CHEA_FILE_OUTPUT, CHEA_TO_COUNTS), (CHEB_FILE_OUTPUT, CHEB_TO_COUNTS), (CHER_FILE_OUTPUT, CHER_TO_COUNTS), (CHEZ_FILE_OUTPUT, CHEZ_TO_COUNTS), (CHED_FILE_OUTPUT, CHED_TO_COUNTS), (CHEV_FILE_OUTPUT, CHEV_TO_COUNTS), (MCP_FILE_OUTPUT, MCP_TO_COUNTS) ])
 COMPONENT_TO_DATASTRUCTURE = dict([("chea", CHEA_TO_COUNTS), ("chew", CHEA_TO_COUNTS), ("checx", CHEA_TO_COUNTS), ("other", CHEA_TO_COUNTS), ("chev", CHEV_TO_COUNTS), ("cheb", CHEB_TO_COUNTS), ("cher", CHER_TO_COUNTS), ("ched", CHED_TO_COUNTS), ("chez", CHEZ_TO_COUNTS), ("mcp", MCP_TO_COUNTS)]) 
-
-GENOME_TO_TAXONOMY = {}
 
 def initialize(argv):
 	global INPUT_FILE, OUTPUT_FILE, TASK, DATABASE, GTDB_METADATA_FILE
@@ -83,19 +79,14 @@ def initialize(argv):
 	except Exception as e:
 		print(("===========ERROR==========\n " + str(e) + USAGE))
 		sys.exit(2)
-	
-	with open(GTDB_METADATA_FILE) as gtdbMetaFile:
-		for line in gtdbMetaFile:
-			line_s = line.split("\t")
-			GENOME_TO_TAXONOMY[line_s[0]] = line_s[4]
 
 
 def collectSignalGenesCounts():
 	with open(OUTPUT_FILE, 'w') as output_file:
-		output_file.write( "\t".join('genomeID, Total, OCP_total, TCP_total, TCP_HK, TCP_HHK, TCP_RR, TCP_HRR, TCP_Other, ChemSys, ECF, Other, Taxonomy, \n'.split(",")) )
+		output_file.write( "\t".join('genome, genome_accession, total, ocp_total, tcp_total, tcp_hk, tcp_hhk, tcp_rr, tcp_hrr, tcp_other, chem_sys, ecf, other\n'.split(",")) )
 	for outpufFile, data_structure in OUTPU_FILE_TO_DICT.items():
 		with open(outpufFile, 'w') as outpuf_file:
-			outpuf_file.write("genomeID\t" + "\t".join(data_structure.keys()) + "\t" + "Taxonomy\n")
+			outpuf_file.write("genome\tgenome_accession\t" + "total\t" + "\t".join(list(data_structure.keys())[1:]) + "\n")
 	
 	recordCounter = 0
 	with open(INPUT_FILE) as inputfile:
@@ -158,7 +149,7 @@ def collectSignalGenesCounts():
 					saveToFile(dataDict, outputFile, genomeVersion)
 					resetDataStructure(dataDict)
 				with open(OUTPUT_FILE, 'a') as output_file:
-					output_file.write( "\t".join(map(str, ([genomeVersion, total, OCP_total, TCP_total, TCP_HK, TCP_HHK, TCP_RR, TCP_HRR, TCP_Other, ChemSys, ECF, Other, GENOME_TO_TAXONOMY[genomeVersion]]))) + "\n") 
+					output_file.write( "\t".join(map(str, ([genomeVersion, genomeVersion.split(".")[0], total, OCP_total, TCP_total, TCP_HK, TCP_HHK, TCP_RR, TCP_HRR, TCP_Other, ChemSys, ECF, Other]))) + "\n") 
 				 	
 				break
 
@@ -177,7 +168,7 @@ def processChemotaxisSystems(data, entity, component_to_counts = False):
 
 def  saveToFile(dataDict, outputFile, genomeVersion):
 	with open(outputFile, 'a') as output_file:
-		output_file.write(genomeVersion + "\t" + "\t".join(map(str, (dataDict.values()))) + "\t" +  GENOME_TO_TAXONOMY[genomeVersion] + "\n")
+		output_file.write(genomeVersion + "\t" + genomeVersion.split(".")[0] +  "\t" + "\t".join(map(str, (dataDict.values()))) + "\n")
 
 def resetDataStructure(dataStrcture):
 	for key in dataStrcture:

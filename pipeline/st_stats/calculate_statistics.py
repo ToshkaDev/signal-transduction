@@ -56,8 +56,7 @@ def initialize(argv):
     except Exception as e:
         print(("===========ERROR==========\n " + str(e) + USAGE))
         sys.exit(2)
-            
-def processSTstatistics():
+    
     # regex to remove prefix .__ (like d__, p__, etc. from the GTDB taxonomomy string)
     regex=r'.__'
     with open(INPUT_FILE2, "r") as iFile2:
@@ -68,7 +67,8 @@ def processSTstatistics():
             taxonomy = ";".join(record[4].split(";")[:TAXONOMY_TO_LEVEL[TAXLEVEL]])
             taxonomy = re.sub(regex, "", taxonomy)
             GENOME_TO_TAXONOMY[genome_version] = taxonomy
-
+            
+def processSTstatistics():
     # Main logic
     with open (INPUT_FILE, "r") as inputFile:
         for lineNumber, line in enumerate(inputFile):
@@ -76,7 +76,7 @@ def processSTstatistics():
                 line = line.strip().split("\t")
                 taxlevel = GENOME_TO_TAXONOMY[line[0]]
 
-                if lineNumber == 1 or (lineNumber > 1 and taxonomy not in TAXONOMY_LEVEL_TO_DATA):
+                if lineNumber == 1 or (lineNumber > 1 and taxlevel not in TAXONOMY_LEVEL_TO_DATA):
                     TAXONOMY_LEVEL_TO_DATA[taxlevel] = DATA.copy()
 
                 TAXONOMY_LEVEL_TO_DATA[taxlevel]["record_number"] += 1

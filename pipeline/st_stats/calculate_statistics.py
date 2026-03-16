@@ -20,17 +20,15 @@ INPUT_FILE = None
 INPUT_FILE2 = None
 OUTPUT_FILE = "st_stats_summary.txt"
 TAXLEVEL = "phylum"
-SOURCE = "mistdb"
-#Major mode ("mm") table (see the MiST database for details)
-PROTEIN_TYPE = "mm"
 
 TAXONOMY_TO_LEVEL = {"species": 7, "genus": 6, "family": 5, "order": 4, "class": 3, "phylum": 2, "kingdom": 1}
 #TAXONOMY_LEVEL_TO_DATA = {"pylum1": {"total": 0, ...}}
 TAXONOMY_LEVEL_TO_DATA = {}
 DATA = OrderedDict([("total", 0), ("ocp_total", 0), ("tcp_total", 0), ("tcp_hk_total", 0), ("tcp_rr_total", 0), ("tcp_hk", 0), ("tcp_hhk", 0), ("tcp_rr", 0), ("tcp_hrr", 0), \
-                    ("tcp_total/ocp_total", 0), ("tcp_hk_total/tcp_rr_total", 0), ("tcp_hk/tcp_rr", 0), ("tcp_hhk/tcp_hrr", 0), \
+                    ("tcp_total_by_ocp_total", 0), ("tcp_hk_total_by_tcp_rr_total", 0), ("tcp_hk_by_tcp_rr", 0), ("tcp_hhk_by_tcp_hrr", 0), \
                     ("tcp_other", 0), ("chem_sys", 0), ("ecf", 0), ("other", 0), ("record_number", 0)])
 GENOME_TO_TAXONOMY = {}
+ADDITIONAL_HEADERS = "\t".join(["gtdb_taxonomy_string", "gtdb_taxonomy_last", "gtdb_taxonomy_rank"])
 
 def initialize(argv):
     global INPUT_FILE, INPUT_FILE2, OUTPUT_FILE, TAXLEVEL
@@ -96,18 +94,18 @@ def processSTstatistics():
                 TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total"] += (int(line[5]) + int(line[6]))
                 TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"] += (int(line[7]) + int(line[8]))
                 if float(line[3]):
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_total/ocp_total"] += int(line[4])/float(line[3])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_total_by_ocp_total"] += int(line[4])/float(line[3])
                 if float(line[7]):
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk/tcp_rr"] += int(line[5])/float(line[7])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_by_tcp_rr"] += int(line[5])/float(line[7])
                 if float(line[8]):
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hhk/tcp_hrr"] += int(line[6])/float(line[8])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hhk_by_tcp_hrr"] += int(line[6])/float(line[8])
                 if float(TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"]):
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total/tcp_rr_total"] += TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total"]/float(TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total_by_tcp_rr_total"] += TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total"]/float(TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"])
                     
 def finalizeDataAndPrint():
     #Write headers first
     with open(OUTPUT_FILE, 'a') as output_file:
-            output_file.write("taxLevel" + "\t" + "\t".join(DATA.keys()) + "\n")
+            output_file.write(ADDITIONAL_HEADERS + "\t" + "\t".join(DATA.keys()) + "\n")
             
     for taxlevel, data in TAXONOMY_LEVEL_TO_DATA.items():
         data["total"] = data["total"]/data["record_number"]
@@ -123,14 +121,14 @@ def finalizeDataAndPrint():
         data["other"] = data["other"]/data["record_number"]
         data["tcp_hk_total"] = data["tcp_hk_total"]/data["record_number"]
         data["tcp_rr_total"] = data["tcp_rr_total"]/data["record_number"]      
-        data["tcp_total/ocp_total"] = data["tcp_total/ocp_total"]/data["record_number"]
-        data["tcp_hk/tcp_rr"] = data["tcp_hk/tcp_rr"]/data["record_number"]
-        data["tcp_hhk/tcp_hrr"] = data["tcp_hhk/tcp_hrr"]/data["record_number"]
-        data["tcp_hk_total/tcp_rr_total"] = data["tcp_hk_total/tcp_rr_total"]/data["record_number"]
+        data["tcp_total_by_ocp_total"] = data["tcp_total_by_ocp_total"]/data["record_number"]
+        data["tcp_hk_by_tcp_rr"] = data["tcp_hk_by_tcp_rr"]/data["record_number"]
+        data["tcp_hhk_by_tcp_hrr"] = data["tcp_hhk_by_tcp_hrr"]/data["record_number"]
+        data["tcp_hk_total_by_tcp_rr_total"] = data["tcp_hk_total_by_tcp_rr_total"]/data["record_number"]
         dataValues = map(roundToFirstDecim, data.values())
         #And now write data
         with open(OUTPUT_FILE, 'a') as output_file:
-            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL, SOURCE, PROTEIN_TYPE]) + "\t" + "\t".join(map(str, dataValues)) + "\n")
+            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL]) + "\t" + "\t".join(map(str, dataValues)) + "\n")
 
 def roundToFirstDecim(value):
     return round(value, 1)

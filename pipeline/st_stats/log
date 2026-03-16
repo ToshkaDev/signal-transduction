@@ -86,7 +86,7 @@ Most ubiquitious MCP class
 
 ./calculate_statistics.py -i st_counts -o st_counts_sum -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv -t phylum
 ./calculate_statistics.py -i st_counts -o st_counts_sum -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv -t class
-./calculate_statistics_chemo.py -a get_counts_CheA_across_genomes.txt -b get_counts_CheB_across_genomes.txt -r get_counts_CheR_across_genomes.txt -z get_counts_CheZ_across_genomes.txt -d get_counts_CheD_across_genomes.txt -v get_counts_CheV_across_genomes.txt -m get_counts_MCP_across_genomes.txt -t phylum
+./calculate_statistics_chemo.py -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv  -a get_counts_CheA_across_genomes.txt -b get_counts_CheB_across_genomes.txt -r get_counts_CheR_across_genomes.txt -z get_counts_CheZ_across_genomes.txt -d get_counts_CheD_across_genomes.txt -v get_counts_CheV_across_genomes.txt -m get_counts_MCP_across_genomes.txt -t phylum
 
 A_FILE = "get_counts_CheA_across_genomes.txt"
 B_FILE = "get_counts_CheB_across_genomes.txt"

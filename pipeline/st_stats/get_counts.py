@@ -42,35 +42,35 @@ CHEV_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_CheV_across_genomes.txt"
 MCP_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_MCP_across_genomes.txt"
 
 MAJOR_ST_TO_COUNTS = OrderedDict([("total", 0), ("ocp_total", 0), ("tcp_total", 0), ("tcp_hk", 0), ("tcp_hhk", 0), ("tcp_rr", 0), ("tcp_hrr", 0), ("tcp_other", 0), ("ecf", 0), ("chem_sys", 0), ("other", 0), \
-								 	("total_normalized_by_total_proteins", 0), ("ocp_total_normalized_by_total_proteins", 0), ("tcp_total_normalized_by_total_proteins", 0), ("tcp_hk_normalized_by_total_proteins", 0), \
-									("tcp_hhk_normalized_by_total_proteins", 0), ("tcp_rr_normalized_by_total_proteins", 0), ("tcp_hrr_normalized_by_total_proteins", 0), ("tcp_other_normalized_by_total_proteins", 0), \
-									("ecf_normalized_by_total_proteins", 0), ("chem_sys_normalized_by_total_proteins", 0), ("Other_normalized_by_total_proteins", 0)])
+								 	("total_norm_by_protein_count", 0), ("ocp_total_norm_by_protein_count", 0), ("tcp_total_norm_by_protein_count", 0), ("tcp_hk_norm_by_protein_count", 0), \
+									("tcp_hhk_norm_by_protein_count", 0), ("tcp_rr_norm_by_protein_count", 0), ("tcp_hrr_norm_by_protein_count", 0), ("tcp_other_norm_by_protein_count", 0), \
+									("ecf_norm_by_protein_count", 0), ("chem_sys_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0)])
 
 TEMPLATE_TO_COUNTS = OrderedDict([("$total", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-									("total_normalized_by_total_proteins", 0), ("F1_normalized_by_total_proteins", 0), ("F2_normalized_by_total_proteins", 0), ("F3_normalized_by_total_proteins", 0), ("F4_normalized_by_total_proteins", 0), ("F5_normalized_by_total_proteins", 0), \
-									("F6_normalized_by_total_proteins", 0), ("F7_normalized_by_total_proteins", 0), ("F8_normalized_by_total_proteins", 0), ("F9_normalized_by_total_proteins", 0), ("F10_normalized_by_total_proteins", 0), ("F11_normalized_by_total_proteins", 0), \
-									("F12_normalized_by_total_proteins", 0), ("F13_normalized_by_total_proteins", 0), ("F14_normalized_by_total_proteins", 0), ("F15_normalized_by_total_proteins", 0), ("F16_normalized_by_total_proteins", 0), ("F17_normalized_by_total_proteins", 0), \
-									("Acf_normalized_by_total_proteins", 0), ("Tfp_normalized_by_total_proteins", 0)])
+									("$total_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), \
+									("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), \
+									("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), \
+									("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0)])
 CHEA_TO_COUNTS = OrderedDict([("$total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-								("total_normalized_by_total_proteins", 0), ("chew_normalized_by_total_proteins", 0), ("checx_normalized_by_total_proteins", 0), ("other_normalized_by_total_proteins", 0), ("F1_normalized_by_total_proteins", 0), ("F2_normalized_by_total_proteins", 0), \
-								("F3_normalized_by_total_proteins", 0), ("F4_normalized_by_total_proteins", 0), ("F5_normalized_by_total_proteins", 0), ("F6_normalized_by_total_proteins", 0), ("F7_normalized_by_total_proteins", 0), ("F8_normalized_by_total_proteins", 0), ("F9_normalized_by_total_proteins", 0), \
-								("F10_normalized_by_total_proteins", 0), ("F11_normalized_by_total_proteins", 0), ("F12_normalized_by_total_proteins", 0), ("F13_normalized_by_total_proteins", 0), ("F14_normalized_by_total_proteins", 0), ("F15_normalized_by_total_proteins", 0), \
-								("F16_normalized_by_total_proteins", 0), ("F17_normalized_by_total_proteins", 0), ("Acf_normalized_by_total_proteins", 0), ("Tfp_normalized_by_total_proteins", 0)])
+								("$total_norm_by_protein_count", 0), ("chew_norm_by_protein_count", 0), ("checx_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), \
+								("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), \
+								("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), \
+								("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0)])
 
 CHED_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
 CHEZ_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
 CHEV_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
 CHEB_TO_COUNTS = OrderedDict([("$total", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-								("total_normalized_by_total_proteins", 0), ("MAC1_normalized_by_total_proteins", 0), ("MAC2_normalized_by_total_proteins", 0), ("F1_normalized_by_total_proteins", 0), ("F2_normalized_by_total_proteins", 0), ("F3_normalized_by_total_proteins", 0), \
-								("F4_normalized_by_total_proteins", 0), ("F5_normalized_by_total_proteins", 0), ("F6_normalized_by_total_proteins", 0), ("F7_normalized_by_total_proteins", 0), ("F8_normalized_by_total_proteins", 0), ("F9_normalized_by_total_proteins", 0), ("F10_normalized_by_total_proteins", 0), \
-								("F11_normalized_by_total_proteins", 0), ("F12_normalized_by_total_proteins", 0), ("F13_normalized_by_total_proteins", 0), ("F14_normalized_by_total_proteins", 0), ("F15_normalized_by_total_proteins", 0), ("F16_normalized_by_total_proteins", 0), \
-								("F17_normalized_by_total_proteins", 0), ("Acf_normalized_by_total_proteins", 0), ("Tfp_normalized_by_total_proteins", 0)])
+								("total_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), \
+								("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), \
+								("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), \
+								("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0)])
 
 CHER_TO_COUNTS = CHEB_TO_COUNTS.copy()
 MCP_TO_COUNTS = OrderedDict([("$total", 0), ("64H", 0), ("58H", 0), ("52H", 0), ("48H", 0), ("44H", 0), ("42H", 0), ("40H", 0), ("38H", 0), ("36H", 0), ("34H", 0), ("28H", 0), ("24H", 0), \
-								("total_normalized_by_total_proteins", 0), ("64H_normalized_by_total_proteins", 0), ("58H_normalized_by_total_proteins", 0), ("52H_normalized_by_total_proteins", 0), \
-								("48H_normalized_by_total_proteins", 0), ("44H_normalized_by_total_proteins", 0), ("42H_normalized_by_total_proteins", 0), ("40H_normalized_by_total_proteins", 0), \
-								("38H_normalized_by_total_proteins", 0), ("36H_normalized_by_total_proteins", 0), ("34H_normalized_by_total_proteins", 0), ("28H_normalized_by_total_proteins", 0), ("24H_normalized_by_total_proteins", 0)]) 
+								("total_norm_by_protein_count", 0), ("64H_norm_by_protein_count", 0), ("58H_norm_by_protein_count", 0), ("52H_norm_by_protein_count", 0), \
+								("48H_norm_by_protein_count", 0), ("44H_norm_by_protein_count", 0), ("42H_norm_by_protein_count", 0), ("40H_norm_by_protein_count", 0), \
+								("38H_norm_by_protein_count", 0), ("36H_norm_by_protein_count", 0), ("34H_norm_by_protein_count", 0), ("28H_norm_by_protein_count", 0), ("24H_norm_by_protein_count", 0)]) 
 
 OUTPU_FILE_TO_DICT = OrderedDict([(CHEA_FILE_OUTPUT, CHEA_TO_COUNTS), (CHEB_FILE_OUTPUT, CHEB_TO_COUNTS), (CHER_FILE_OUTPUT, CHER_TO_COUNTS), (CHEZ_FILE_OUTPUT, CHEZ_TO_COUNTS), (CHED_FILE_OUTPUT, CHED_TO_COUNTS), (CHEV_FILE_OUTPUT, CHEV_TO_COUNTS), (MCP_FILE_OUTPUT, MCP_TO_COUNTS) ])
 COMPONENT_TO_DATASTRUCTURE = dict([("chea", CHEA_TO_COUNTS), ("chew", CHEA_TO_COUNTS), ("checx", CHEA_TO_COUNTS), ("other", CHEA_TO_COUNTS), ("chev", CHEV_TO_COUNTS), ("cheb", CHEB_TO_COUNTS), ("cher", CHER_TO_COUNTS), ("ched", CHED_TO_COUNTS), ("chez", CHEZ_TO_COUNTS), ("mcp", MCP_TO_COUNTS)]) 
@@ -78,7 +78,7 @@ COMPONENT_TO_DATASTRUCTURE = dict([("chea", CHEA_TO_COUNTS), ("chew", CHEA_TO_CO
 def initialize(argv):
 	global INPUT_FILE, INPUT_FILE2, OUTPUT_FILE, TASK, DATABASE, GTDB_METADATA_FILE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:s:o:b:g:",["help", "ifile=", "sfile=", "ofile=", "dbase=", "gtdbmeta"])
+		opts, args = getopt.getopt(argv[1:],"hi:s:o:b:g:",["help", "ifile=", "sfile=", "ofile=", "dbase=", "gtdbmeta="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -120,7 +120,7 @@ def saveHeaders():
 		ofile.write("genome\tgenome_accession\t" + "\t".join(list(MAJOR_ST_TO_COUNTS.keys())) + "\n")
 	for outpufFile, data_structure in OUTPU_FILE_TO_DICT.items():
 		with open(outpufFile, 'w') as outpuf_file:
-			outpuf_file.write("genome\tgenome_accession\t" + "total\t" + "\t".join(list(data_structure.keys())[1:]) + "\n")
+			outpuf_file.write("genome\tgenome_accession\t" + "\t".join(list(data_structure.keys())).replace("$", "") + "\n")
 
 def collectSignalGenesCounts():
 	recordCounter = 0
@@ -191,7 +191,7 @@ def collectSignalGenesCounts():
 				break
 
 def processChemotaxisSystems(genomeVersion, data, entity, component_to_counts = False):
-	postfix = "_normalized_by_total_proteins"
+	postfix = "_norm_by_protein_count"
 	#entity can be chea, mcp, cheb, cher, and so on
 	additional = set(["checx", "chew", "other"])
 	if entity in data["counts"]["chemotaxis"]:
@@ -209,9 +209,9 @@ def processChemotaxisSystems(genomeVersion, data, entity, component_to_counts = 
 				component_to_counts[system+postfix] = subdata["$total"]/float(GENOME_TO_PROTEIN_COUNT[genomeVersion])
 
 def normalize_major_st_by_protein_counts(genomeVersion):
-	systems = [system for system in MAJOR_ST_TO_COUNTS.keys() if not system.endswith("_normalized_by_total_proteins")]
+	systems = [system for system in MAJOR_ST_TO_COUNTS.keys() if not system.endswith("_norm_by_protein_count")]
 	for sys in systems:
-		MAJOR_ST_TO_COUNTS[sys+"_normalized_by_total_proteins"] = MAJOR_ST_TO_COUNTS[sys]/float(GENOME_TO_PROTEIN_COUNT[genomeVersion])
+		MAJOR_ST_TO_COUNTS[sys+"_norm_by_protein_count"] = MAJOR_ST_TO_COUNTS[sys]/float(GENOME_TO_PROTEIN_COUNT[genomeVersion])
 
 def  saveToFile(dataDict, outputFile, genomeVersion):
 	with open(outputFile, 'a') as output_file:

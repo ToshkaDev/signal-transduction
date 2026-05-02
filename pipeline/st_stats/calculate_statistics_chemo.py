@@ -24,14 +24,29 @@ USAGE = "\n\nThe script summarizes statistic of chemotaxis systems created by th
     GCA_001873295.1	GCA_001873295	2	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
     '''
 
-TEMPLATE_TO_COUNTS = OrderedDict([("total", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), ("recordNumber", 0)])
-CHEA_TO_COUNTS = OrderedDict([("total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), ("recordNumber", 0)])
+TEMPLATE_TO_COUNTS = OrderedDict([("total", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
+                                  	("total_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), \
+									("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), \
+									("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), \
+									("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0), ("recordNumber", 0)])
+CHEA_TO_COUNTS = OrderedDict([("total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
+                              	("total_norm_by_protein_count", 0), ("chew_norm_by_protein_count", 0), ("checx_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), \
+								("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), \
+								("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), \
+								("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0), ("recordNumber", 0)])
 CHED_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
 CHEZ_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
 CHEV_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-CHEB_TO_COUNTS = OrderedDict([("total", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), ("recordNumber", 0)])
+CHEB_TO_COUNTS = OrderedDict([("total", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
+                              	("total_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), \
+								("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), \
+								("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), \
+								("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0), ("recordNumber", 0)])
 CHER_TO_COUNTS = CHEB_TO_COUNTS.copy()
-MCP_TO_COUNTS = OrderedDict([("total", 0), ("64H", 0), ("58H", 0), ("52H", 0), ("48H", 0), ("44H", 0), ("42H", 0), ("40H", 0), ("38H", 0), ("36H", 0), ("34H", 0), ("28H", 0), ("24H", 0), ("recordNumber", 0)]) 
+MCP_TO_COUNTS = OrderedDict([("total", 0), ("64H", 0), ("58H", 0), ("52H", 0), ("48H", 0), ("44H", 0), ("42H", 0), ("40H", 0), ("38H", 0), ("36H", 0), ("34H", 0), ("28H", 0), ("24H", 0), \
+                             	("total_norm_by_protein_count", 0), ("64H_norm_by_protein_count", 0), ("58H_norm_by_protein_count", 0), ("52H_norm_by_protein_count", 0), \
+								("48H_norm_by_protein_count", 0), ("44H_norm_by_protein_count", 0), ("42H_norm_by_protein_count", 0), ("40H_norm_by_protein_count", 0), \
+								("38H_norm_by_protein_count", 0), ("36H_norm_by_protein_count", 0), ("34H_norm_by_protein_count", 0), ("28H_norm_by_protein_count", 0), ("24H_norm_by_protein_count", 0), ("recordNumber", 0)]) 
 
 GTDB_FILE = None
 A_FILE = "get_counts_CheA_across_genomes.txt"
@@ -119,25 +134,22 @@ def processSTstatistics(fileToProcess, data):
                 #I use num+2 becuase the first and 2d columns in the input file are a genome identifier and genome_accession,
                 #while elements of INPUT_FILE_TO_DATA[fileToProcess] look like: "total", "F1, F2", etc
                 #Therefore we add 2 to shift by two positions from the beginning of the line and land on the 3rd column. Look at the input file format in USAGE
-                for num, field in enumerate(taxlevel_to_data[taxlevel]):
-                    #We also check if num < len(line)-2 because we shift by two positions and we don't want to get out of bounds error. 
-                    print (line)
-                    print (num, field)
-                    if num < len(line)-2:
-                        taxlevel_to_data[taxlevel][field] += int(line[num+2])
+                for idx, system in enumerate(taxlevel_to_data[taxlevel]):
+                    taxlevel_to_data[taxlevel][system] += float(line[idx+2])
 
     return taxlevel_to_data
 
 def finalizeDataAndSave(taxlevel_to_data, inputFile, data, protein_type):
     with open (inputFile.split(".")[0]+"_"+TAXLEVEL, "a") as output_file:
-        output_file.write(ADDITIONAL_HEADERS + "\t" + "\t".join(data.keys()) + "\n")
+         # converting to list and write all the headers except for the last one, which is 'record_number'
+        output_file.write(ADDITIONAL_HEADERS + "\t" + "\t".join(list(data.keys())[:-1]) + "\n")
 
         for taxlevel, data in taxlevel_to_data.items():
             for param in data:
-                if param != "recordNumber":
-                    data[param] = data[param]/data["recordNumber"]
+                data[param] = data[param]/data["recordNumber"]
             dataValues = map(roundToFirstDecim, data.values())
-            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL, protein_type])  + "\t" + "\t".join(map(str, dataValues)) + "\n")
+            # Here converting the resulting map obejct to lost and writing all the values except for the last one (the number of records)
+            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL, protein_type])  + "\t" + "\t".join(list(map(str, dataValues))[:-1]) + "\n")
 
 def roundToFirstDecim(value):
     return round(value, 1)

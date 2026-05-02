@@ -24,9 +24,6 @@ TAXLEVEL = "phylum"
 TAXONOMY_TO_LEVEL = {"species": 7, "genus": 6, "family": 5, "order": 4, "class": 3, "phylum": 2, "kingdom": 1}
 #TAXONOMY_LEVEL_TO_DATA = {"pylum1": {"total": 0, ...}}
 TAXONOMY_LEVEL_TO_DATA = {}
-# DATA = OrderedDict([("total", 0), ("ocp_total", 0), ("tcp_total", 0), ("tcp_hk_total", 0), ("tcp_rr_total", 0), ("tcp_hk", 0), ("tcp_hhk", 0), ("tcp_rr", 0), ("tcp_hrr", 0), \
-#                     ("tcp_total_by_ocp_total", 0), ("tcp_hk_total_by_tcp_rr_total", 0), ("tcp_hk_by_tcp_rr", 0), ("tcp_hhk_by_tcp_hrr", 0), \
-#                     ("tcp_other", 0), ("chem_sys", 0), ("ecf", 0), ("other", 0), ("record_number", 0), ("average_protein_count", 0)])
 
 DATA = OrderedDict([("total", 0), ("ocp_total", 0), ("tcp_total", 0), ("tcp_hk_total", 0), ("tcp_rr_total", 0), ("tcp_hk", 0), ("tcp_hhk", 0), ("tcp_rr", 0), ("tcp_hrr", 0), \
                     ("tcp_total_by_ocp_total", 0), ("tcp_hk_total_by_tcp_rr_total", 0), ("tcp_hk_by_tcp_rr", 0), ("tcp_hhk_by_tcp_hrr", 0), \
@@ -131,16 +128,18 @@ def processSTstatistics():
 def finalizeDataAndPrint():
     # Write headers first
     with open(OUTPUT_FILE, 'a') as output_file:
-            output_file.write(ADDITIONAL_HEADERS + "\t" + "\t".join(DATA.keys()) + "\n")
+            # converting to list and write all the headers except for the last one, which is 'record_number'
+            output_file.write(ADDITIONAL_HEADERS + "\t" + "\t".join(list(DATA.keys())[:-1]) + "\n")
     
     # Normalize data by record number
     for taxlevel, data in TAXONOMY_LEVEL_TO_DATA.items():
         for system in data.keys():
             data[system] = data[system]/data["record_number"]
+
         # And now write data
         with open(OUTPUT_FILE, 'a') as output_file:
-            # output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL]) + "\t" + "\t".join(map(str, dataValues)) + "\n")
-            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL]) + "\t" + "\t".join(map(str, data.values())) + "\n")
+            # Here converting the resulting map obejct to lost and writing all the values except for the last one (the number of records)
+            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL]) + "\t" + "\t".join(list(map(str, data.values()))[:-1]) + "\n")
    
 def main(argv):
     initialize(argv)

@@ -82,7 +82,7 @@ Most ubiquitious MCP class
 
 ./get_and_classify.py -i ../test/testids.txt -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
-./get_counts.py -i ../test/testids.txt -o st_counts -b mist -s ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
+./get_counts.py -i ../test/testids.txt -o st_counts -c chem_counts -m mcp_counts -b mist -s ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
 ./calculate_statistics.py -i st_counts -o st_counts_sum -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv -t phylum
 ./calculate_statistics.py -i st_counts -o st_counts_sum -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv -t class

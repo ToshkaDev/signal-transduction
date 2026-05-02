@@ -14,7 +14,9 @@ USAGE = "\n\nThe script queries MiST database via it's API for the counts of sig
 	-h || --help               - help
 	-i || --ifile              - input file
 	-s || --sfile              - input file 2 (GTDB taxonomy metadata file)
-	-o || --ofile              - output file
+	-o || --ofile              - output file with major st systems (one-component, two-component, ect, other)
+	-c || --cfile			   - output file with chemotaxis systems
+	-m || --mfile              - output file with MCP chemoreceptros
 	-b || --dbase              - specify database: mist or mist-mags
 	'''
 
@@ -24,7 +26,9 @@ TIMEOUT_FILE = sys.argv[0].replace(".py", "")  + "_timeout_info.txt"
 
 INPUT_FILE = None
 INPUT_FILE2 = None
-OUTPUT_FILE = None
+OUTPUT_FILE_MST = None
+OUTPUT_FILE_CHEM = None
+OUTPUT_FILE_MCP = None
 
 DATABASE = "mist"
 GENOME_TO_PROTEIN_COUNT = {}
@@ -33,61 +37,38 @@ GENOMES_URL = "https://mib-jouline-db.asc.ohio-state.edu/v1/genomes/"
 METAGENOMES_URL = "https://metagenomes.asc.ohio-state.edu/v1/genomes/"
 DATABASE_TO_URL = {"mist": GENOMES_URL, "mist-mags": METAGENOMES_URL}
 
-CHEA_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_CheA_across_genomes.txt"
-CHEB_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_CheB_across_genomes.txt"
-CHER_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_CheR_across_genomes.txt"
-CHEZ_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_CheZ_across_genomes.txt"
-CHED_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_CheD_across_genomes.txt"
-CHEV_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_CheV_across_genomes.txt"
-MCP_FILE_OUTPUT = sys.argv[0].replace(".py", "") + "_MCP_across_genomes.txt"
-
 MAJOR_ST_TO_COUNTS = OrderedDict([("total", 0), ("ocp_total", 0), ("tcp_total", 0), ("tcp_hk", 0), ("tcp_hhk", 0), ("tcp_rr", 0), ("tcp_hrr", 0), ("tcp_other", 0), ("ecf", 0), ("chem_sys", 0), ("other", 0), \
 								 	("total_norm_by_protein_count", 0), ("ocp_total_norm_by_protein_count", 0), ("tcp_total_norm_by_protein_count", 0), ("tcp_hk_norm_by_protein_count", 0), \
 									("tcp_hhk_norm_by_protein_count", 0), ("tcp_rr_norm_by_protein_count", 0), ("tcp_hrr_norm_by_protein_count", 0), ("tcp_other_norm_by_protein_count", 0), \
 									("ecf_norm_by_protein_count", 0), ("chem_sys_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0)])
 
-# TEMPLATE_TO_COUNTS = OrderedDict([("$total", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-# 									("total_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), \
-# 									("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), \
-# 									("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), \
-# 									("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0)])
-TEMPLATE_TO_COUNTS = OrderedDict([("$total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("ACF", 0), ("Tfp", 0), \
-								("total_norm_by_protein_count", 0), ("chew_norm_by_protein_count", 0), ("checx_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), \
+CHEM_TEMPLATE_TO_COUNTS = OrderedDict([("protein_type", None), ("$total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("ACF", 0), ("Tfp", 0), \
+								("$total_norm_by_protein_count", 0), ("chew_norm_by_protein_count", 0), ("checx_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), \
 								("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), \
 								("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), \
 								("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), ("ACF_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0)])
 
-# CHEA_TO_COUNTS = OrderedDict([("$total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-# 								("total_norm_by_protein_count", 0), ("chew_norm_by_protein_count", 0), ("checx_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), \
-# 								("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), \
-# 								("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), \
-# 								("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0)])
+CHEA_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEW_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHECX_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEMOTHER_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHED_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEZ_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEV_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
 
-CHEA_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-CHED_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-CHEZ_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-CHEV_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-# CHEB_TO_COUNTS = OrderedDict([("$total", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-# 								("total_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), \
-# 								("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), \
-# 								("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), \
-# 								("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0)])
-
-CHEB_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-#CHER_TO_COUNTS = CHEB_TO_COUNTS.copy()
-CHER_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
+CHEB_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHER_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
 MCP_TO_COUNTS = OrderedDict([("$total", 0), ("64H", 0), ("58H", 0), ("52H", 0), ("48H", 0), ("44H", 0), ("42H", 0), ("40H", 0), ("38H", 0), ("36H", 0), ("34H", 0), ("28H", 0), ("24H", 0), \
 								("total_norm_by_protein_count", 0), ("64H_norm_by_protein_count", 0), ("58H_norm_by_protein_count", 0), ("52H_norm_by_protein_count", 0), \
 								("48H_norm_by_protein_count", 0), ("44H_norm_by_protein_count", 0), ("42H_norm_by_protein_count", 0), ("40H_norm_by_protein_count", 0), \
 								("38H_norm_by_protein_count", 0), ("36H_norm_by_protein_count", 0), ("34H_norm_by_protein_count", 0), ("28H_norm_by_protein_count", 0), ("24H_norm_by_protein_count", 0)]) 
 
-OUTPU_FILE_TO_DICT = OrderedDict([(CHEA_FILE_OUTPUT, CHEA_TO_COUNTS), (CHEB_FILE_OUTPUT, CHEB_TO_COUNTS), (CHER_FILE_OUTPUT, CHER_TO_COUNTS), (CHEZ_FILE_OUTPUT, CHEZ_TO_COUNTS), (CHED_FILE_OUTPUT, CHED_TO_COUNTS), (CHEV_FILE_OUTPUT, CHEV_TO_COUNTS), (MCP_FILE_OUTPUT, MCP_TO_COUNTS) ])
-COMPONENT_TO_DATASTRUCTURE = dict([("chea", CHEA_TO_COUNTS), ("chew", CHEA_TO_COUNTS), ("checx", CHEA_TO_COUNTS), ("other", CHEA_TO_COUNTS), ("chev", CHEV_TO_COUNTS), ("cheb", CHEB_TO_COUNTS), ("cher", CHER_TO_COUNTS), ("ched", CHED_TO_COUNTS), ("chez", CHEZ_TO_COUNTS), ("mcp", MCP_TO_COUNTS)]) 
+COMPONENT_TO_DATASTRUCTURE = dict([("chea", CHEA_TO_COUNTS), ("chew", CHEW_TO_COUNTS), ("checx", CHECX_TO_COUNTS), ("other", CHEMOTHER_TO_COUNTS), ("chev", CHEV_TO_COUNTS), ("cheb", CHEB_TO_COUNTS), ("cher", CHER_TO_COUNTS), ("ched", CHED_TO_COUNTS), ("chez", CHEZ_TO_COUNTS), ("mcp", MCP_TO_COUNTS)]) 
 
 def initialize(argv):
-	global INPUT_FILE, INPUT_FILE2, OUTPUT_FILE, TASK, DATABASE, GTDB_METADATA_FILE
+	global INPUT_FILE, INPUT_FILE2, OUTPUT_FILE_MST, OUTPUT_FILE_MCP, OUTPUT_FILE_CHEM, DATABASE, GTDB_METADATA_FILE
 	try:
-		opts, args = getopt.getopt(argv[1:],"hi:s:o:b:g:",["help", "ifile=", "sfile=", "ofile=", "dbase=", "gtdbmeta="])
+		opts, args = getopt.getopt(argv[1:],"hi:s:o:c:m:b:g:",["help", "ifile=", "sfile=", "ofile=", "cfile=", "mfile=", "dbase=", "gtdbmeta="])
 		if len(opts) == 0:
 			raise getopt.GetoptError("Options are required\n")
 	except getopt.GetoptError as e:
@@ -103,8 +84,11 @@ def initialize(argv):
 			elif opt in ("-s", "--sfile"):
 				INPUT_FILE2 = str(arg).strip()
 			elif opt in ("-o", "--ofile"):
-				OUTPUT_FILE = str(arg).strip()
-				TASK = str(arg).strip()
+				OUTPUT_FILE_MST = str(arg).strip()
+			elif opt in ("-c", "--cfile"):
+				OUTPUT_FILE_CHEM = str(arg).strip()
+			elif opt in ("-m", "--mfile"):
+				OUTPUT_FILE_MCP = str(arg).strip()
 			elif opt in ("-b", "--dbase"):
 				DATABASE = str(arg).strip()
 				if DATABASE not in DATABASE_TO_URL:
@@ -124,12 +108,14 @@ def initialize(argv):
 			GENOME_TO_PROTEIN_COUNT[genome_version] = record[3]
 
 def saveHeaders():
-	# Save header:
-	with open(OUTPUT_FILE, 'w') as ofile:
+	# Save headers
+	## Major ST systems
+	with open(OUTPUT_FILE_MST, 'w') as ofile:
 		ofile.write("genome\tgenome_accession\t" + "\t".join(list(MAJOR_ST_TO_COUNTS.keys())) + "\n")
-	for outpufFile, data_structure in OUTPU_FILE_TO_DICT.items():
-		with open(outpufFile, 'w') as outpuf_file:
-			outpuf_file.write("genome\tgenome_accession\t" + "\t".join(list(data_structure.keys())).replace("$", "") + "\n")
+	## Chemotaxis systems
+	with open(OUTPUT_FILE_CHEM, 'w') as cfile, open(OUTPUT_FILE_MCP, 'w') as mfile:
+		cfile.write("genome\tgenome_accession\t" + "\t".join(list(CHEM_TEMPLATE_TO_COUNTS.keys())).replace("$", "") + "\n")
+		mfile.write("genome\tgenome_accession\t" + "\t".join(list(MCP_TO_COUNTS.keys())).replace("$", "") + "\n")
 
 def collectSignalGenesCounts():
 	recordCounter = 0
@@ -191,28 +177,27 @@ def collectSignalGenesCounts():
 				normalize_major_st_by_protein_counts(genomeVersion)
 
 				# Save chemotaxis systems
-				for outputFile, dataDict in OUTPU_FILE_TO_DICT.items():
-					saveToFile(dataDict, outputFile, genomeVersion)
+				for component, dataDict in COMPONENT_TO_DATASTRUCTURE.items():
+					if component != "mcp":
+						saveToFile(dataDict, OUTPUT_FILE_CHEM, genomeVersion)
+					else :
+						saveToFile(dataDict, OUTPUT_FILE_MCP, genomeVersion)
 					resetDataStructure(dataDict)
+
 				# Save majsor ST systems
-				saveToFile(MAJOR_ST_TO_COUNTS, OUTPUT_FILE, genomeVersion)
+				saveToFile(MAJOR_ST_TO_COUNTS, OUTPUT_FILE_MST, genomeVersion)
 				
 				break
 
 def processChemotaxisSystems(genomeVersion, data, entity, component_to_counts = False):
 	postfix = "_norm_by_protein_count"
-	#entity can be chea, mcp, cheb, cher, and so on
-	additional = set(["checx", "chew", "other"])
+	component_to_counts["protein_type"] = entity
 	if entity in data["counts"]["chemotaxis"]:
 		for system, subdata in data["counts"]["chemotaxis"][entity].items():
 			if system == "$total":
-				if entity not in additional:
-					component_to_counts[system] = subdata
-					# normalization by protein count; the same below
-					component_to_counts[system+postfix] = subdata/float(GENOME_TO_PROTEIN_COUNT[genomeVersion])
-				else:
-					component_to_counts[entity] = subdata
-					component_to_counts[entity+postfix] = subdata/float(GENOME_TO_PROTEIN_COUNT[genomeVersion])
+				component_to_counts[system] = subdata
+				# normalization by protein count; the same below
+				component_to_counts[system+postfix] = subdata/float(GENOME_TO_PROTEIN_COUNT[genomeVersion])
 			elif system in component_to_counts:
 				component_to_counts[system] = subdata["$total"]
 				component_to_counts[system+postfix] = subdata["$total"]/float(GENOME_TO_PROTEIN_COUNT[genomeVersion])
@@ -235,7 +220,6 @@ def main(argv):
 	saveHeaders()
 	collectSignalGenesCounts()
 
-	
 main(sys.argv)
 
 	

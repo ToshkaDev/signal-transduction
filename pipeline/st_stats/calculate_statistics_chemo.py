@@ -8,71 +8,56 @@ USAGE = "\n\nThe script summarizes statistic of chemotaxis systems created by th
     "For each taxonomy level (species, genus, family, order, class, phylum, kingdom) it calculates the average number of each chemotaxis system component per genome.\n" + \
     "python 	" + sys.argv[0] + '''
     -h || --help               - help
-    -a || --afile              - input file (CheA statistics file).    
-    -b || --bfile              - input file (CheB statistics file)
-    -r || --rfile              - input file (CheR statistics file) 
-    -z || --zfile              - input file (CheZ statistics file)
-    -d || --dfile              - input file (CheD statistics file)
-    -v || --vfile              - input file (CheV statistics file)
-    -m || --mfile              - input file (MCP statistics file)
+    -c || --cfile              - input file with cemotaxis data  
+    -m || --mfile              - input file MCP chemoreceptors
     -s || --sfile              - input file (GTDB taxonomy metadata file)
     -t || --taxlevel           - taxonomy level for summarization. One of: species, genus, family, order, class, taxlevel, kingdom, or acorss. 'across' means across all phyla.
 
     Input files are tab delimited and have the following format (ex., -a file, CheA statistics file):
-    genome	genome_accession	total	chew	checx	other	F1	F2	F3	F4	F5	F6	F7	F8	F9	F10	F11	F12	F13	F14	F15	F16	F17	Acf	Tfp
-    GCA_001872605.1	GCA_001872605	1	1	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
-    GCA_001873295.1	GCA_001873295	2	2	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+    genome	genome_accession	protein_type	total	chew	checx	other	MAC1	MAC2	F1	F2	F3	F4	F5	F6	F7	F8	F9	F10	F11	F12	F13	F14	F15	F16	F17	ACF	Tfp	total_norm_by_protein_count	chew_norm_by_protein_count	checx_norm_by_protein_count	other_norm_by_protein_count	MAC1_norm_by_protein_count	MAC2_norm_by_protein_count	F1_norm_by_protein_count	F2_norm_by_protein_count	F3_norm_by_protein_count	F4_norm_by_protein_count	F5_norm_by_protein_count	F6_norm_by_protein_count	F7_norm_by_protein_count	F8_norm_by_protein_count	F9_norm_by_protein_count	F10_norm_by_protein_count	F11_norm_by_protein_count	F12_norm_by_protein_count	F13_norm_by_protein_count	F14_norm_by_protein_count	F15_norm_by_protein_count	F16_norm_by_protein_count	F17_norm_by_protein_count	ACF_norm_by_protein_count	Tfp_norm_by_protein_count
+    GCA_001872605.1	GCA_001872605	chea	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0.00021272069772388852	0	0	0	0	0	0.00021272069772388852	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+    GCA_001872605.1	GCA_001872605	chew	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0.00021272069772388852	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+    GCA_001872605.1	GCA_001872605	checx	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0.00042544139544777704	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
     '''
-
-TEMPLATE_TO_COUNTS = OrderedDict([("total", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-                                  	("total_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), \
-									("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), \
-									("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), \
-									("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0), ("recordNumber", 0)])
-CHEA_TO_COUNTS = OrderedDict([("total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-                              	("total_norm_by_protein_count", 0), ("chew_norm_by_protein_count", 0), ("checx_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), \
+CHEM_TEMPLATE_TO_COUNTS = OrderedDict([("total", 0), ("chew", 0), ("checx", 0), ("other", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("ACF", 0), ("Tfp", 0), \
+								("total_norm_by_protein_count", 0), ("chew_norm_by_protein_count", 0), ("checx_norm_by_protein_count", 0), ("other_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), \
 								("F3_norm_by_protein_count", 0), ("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), \
 								("F10_norm_by_protein_count", 0), ("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), \
-								("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0), ("recordNumber", 0)])
-CHED_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-CHEZ_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-CHEV_TO_COUNTS = TEMPLATE_TO_COUNTS.copy()
-CHEB_TO_COUNTS = OrderedDict([("total", 0), ("MAC1", 0), ("MAC2", 0), ("F1", 0), ("F2", 0), ("F3", 0), ("F4", 0), ("F5", 0), ("F6", 0), ("F7", 0), ("F8", 0), ("F9", 0), ("F10", 0), ("F11", 0), ("F12", 0), ("F13", 0), ("F14", 0), ("F15", 0), ("F16", 0), ("F17", 0), ("Acf", 0), ("Tfp", 0), \
-                              	("total_norm_by_protein_count", 0), ("MAC1_norm_by_protein_count", 0), ("MAC2_norm_by_protein_count", 0), ("F1_norm_by_protein_count", 0), ("F2_norm_by_protein_count", 0), ("F3_norm_by_protein_count", 0), \
-								("F4_norm_by_protein_count", 0), ("F5_norm_by_protein_count", 0), ("F6_norm_by_protein_count", 0), ("F7_norm_by_protein_count", 0), ("F8_norm_by_protein_count", 0), ("F9_norm_by_protein_count", 0), ("F10_norm_by_protein_count", 0), \
-								("F11_norm_by_protein_count", 0), ("F12_norm_by_protein_count", 0), ("F13_norm_by_protein_count", 0), ("F14_norm_by_protein_count", 0), ("F15_norm_by_protein_count", 0), ("F16_norm_by_protein_count", 0), \
-								("F17_norm_by_protein_count", 0), ("Acf_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0), ("recordNumber", 0)])
-CHER_TO_COUNTS = CHEB_TO_COUNTS.copy()
+								("F16_norm_by_protein_count", 0), ("F17_norm_by_protein_count", 0), ("ACF_norm_by_protein_count", 0), ("Tfp_norm_by_protein_count", 0), ("recordNumber", 0)])
+
+CHEA_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEW_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHECX_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEMOTHER_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHED_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEZ_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEV_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHEB_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+CHER_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+
 MCP_TO_COUNTS = OrderedDict([("total", 0), ("64H", 0), ("58H", 0), ("52H", 0), ("48H", 0), ("44H", 0), ("42H", 0), ("40H", 0), ("38H", 0), ("36H", 0), ("34H", 0), ("28H", 0), ("24H", 0), \
                              	("total_norm_by_protein_count", 0), ("64H_norm_by_protein_count", 0), ("58H_norm_by_protein_count", 0), ("52H_norm_by_protein_count", 0), \
 								("48H_norm_by_protein_count", 0), ("44H_norm_by_protein_count", 0), ("42H_norm_by_protein_count", 0), ("40H_norm_by_protein_count", 0), \
 								("38H_norm_by_protein_count", 0), ("36H_norm_by_protein_count", 0), ("34H_norm_by_protein_count", 0), ("28H_norm_by_protein_count", 0), ("24H_norm_by_protein_count", 0), ("recordNumber", 0)]) 
 
-GTDB_FILE = None
-A_FILE = "get_counts_CheA_across_genomes.txt"
-B_FILE = "get_counts_CheB_across_genomes.txt"
-R_FILE = "get_counts_CheR_across_genomes.txt"
-Z_FILE = "get_counts_CheZ_across_genomes.txt"
-D_FILE = "get_counts_CheD_across_genomes.txt"
-V_FILE = "get_counts_CheV_across_genomes.txt"
-MCP_FILE = "get_counts_MCP_across_genomes.txt"
+CHEM_COMPONENT_TO_DATASTRUCTURE = dict([("chea", CHEA_TO_COUNTS), ("chew", CHEW_TO_COUNTS), ("checx", CHECX_TO_COUNTS), ("other", CHEMOTHER_TO_COUNTS), ("chev", CHEV_TO_COUNTS), ("cheb", CHEB_TO_COUNTS), ("cher", CHER_TO_COUNTS), ("ched", CHED_TO_COUNTS), ("chez", CHEZ_TO_COUNTS)]) 
+MCP_COMPONENT_TO_DATASTRUCTURE = dict([("mcp", MCP_TO_COUNTS)]) 
 
-INPUT_FILE_TO_DATA = OrderedDict([(A_FILE, CHEA_TO_COUNTS), (B_FILE, CHEB_TO_COUNTS), (R_FILE, CHER_TO_COUNTS), (Z_FILE, CHEZ_TO_COUNTS), (D_FILE, CHED_TO_COUNTS), (V_FILE, CHEV_TO_COUNTS), (MCP_FILE, MCP_TO_COUNTS)])
+GTDB_FILE = None
+CHEM_FILE = None
+MCP_FILE = None
 
 GENOME_TO_CHEA_NUMBER = {}
 
 TAXLEVEL = "phylum"
 TAXONOMY_TO_LEVEL = {"species": 7, "genus": 6, "family": 5, "order": 4, "class": 3, "phylum": 2, "kingdom": 1}
-#Major mode ("mm") table (see the MiST database for details)
-PROTEIN_TYPE = "CheA"
-INPUT_FILE_TO_PROTEIN_TYPE = dict([(A_FILE, "CheA"), (B_FILE, "CheB"), (R_FILE, "CheR"), (Z_FILE, "CheZ"), (D_FILE, "CheD"), (V_FILE, "CheV"), (MCP_FILE, "MCP")])
 GENOME_TO_TAXONOMY = {}
-ADDITIONAL_HEADERS = "\t".join(["gtdb_taxonomy_string", "gtdb_taxonomy_last", "gtdb_taxonomy_rank", "protein_type"])
+ADDITIONAL_HEADERS = "\t".join(["gtdb_taxonomy_string", "gtdb_taxonomy_last", "gtdb_taxonomy_rank"])
 
 def initialize(argv):
-    global INPUT_FILE_TO_DATA, GTDB_FILE, A_FILE, B_FILE, R_FILE, Z_FILE, D_FILE, V_FILE, MCP_FILE, TAXLEVEL, PROTEIN_TYPE
+    global INPUT_FILE_TO_DATA, CHEM_FILE, MCP_FILE, GTDB_FILE, TAXLEVEL
     try:
-        opts, args = getopt.getopt(argv[1:],"hi:s:a:b:r:z:d:v:m:t:",["help", "sfile=", "afile=", "bfile=", "rfile=", "zfile=", "dfile=", "vfile=", "mfile=", "taxlevel="])
+        opts, args = getopt.getopt(argv[1:],"hi:c:m:s:t:",["help", "cfile=", "mfile", "sfile=", "taxlevel="])
         if len(opts) == 0:
             raise getopt.GetoptError("Options are required\n")
     except getopt.GetoptError as e:
@@ -83,18 +68,8 @@ def initialize(argv):
             if opt in ("-h", "--help"):
                 print(USAGE)
                 sys.exit()
-            elif opt in ("-a", "--afile"):
-                A_FILE = str(arg).strip()
-            elif opt in ("-b", "--bfile"):
-                B_FILE = str(arg).strip()
-            elif opt in ("-r", "--rfile"):
-                R_FILE = str(arg).strip()
-            elif opt in ("-z", "--zfile"):
-                Z_FILE = str(arg).strip()
-            elif opt in ("-d", "--dfile"):
-                D_FILE = str(arg).strip()
-            elif opt in ("-v", "--vfile"):
-                V_FILE = str(arg).strip()
+            elif opt in ("-c", "--afile"):
+                CHEM_FILE = str(arg).strip()
             elif opt in ("-m", "--mfile"):
                 MCP_FILE = str(arg).strip()
             elif opt in ("-s", "--sfile"):
@@ -117,48 +92,73 @@ def initialize(argv):
             taxonomy = re.sub(regex, "", taxonomy)
             GENOME_TO_TAXONOMY[genome_version] = taxonomy
 
-    INPUT_FILE_TO_DATA = OrderedDict([(A_FILE, CHEA_TO_COUNTS), (B_FILE, CHEB_TO_COUNTS), (R_FILE, CHER_TO_COUNTS), (Z_FILE, CHEZ_TO_COUNTS), (D_FILE, CHED_TO_COUNTS), (V_FILE, CHEV_TO_COUNTS), (MCP_FILE, MCP_TO_COUNTS)])
-
-def processSTstatistics(fileToProcess, data):
+def processSTstatistics(fileToProcess, componen_to_datastructure, mcp=False):
     taxlevel_to_data = {}
     with open (fileToProcess, "r") as inputFile:
         for lineNumber, line in enumerate(inputFile):
             if lineNumber > 0:
                 line = line.strip().split("\t")
                 taxlevel = GENOME_TO_TAXONOMY[line[0]]
-
                 if lineNumber == 1 or (lineNumber > 1 and taxlevel not in taxlevel_to_data):
-                    taxlevel_to_data[taxlevel] = data.copy()
+                    taxlevel_to_data[taxlevel] = componen_to_datastructure.copy()
 
-                taxlevel_to_data[taxlevel]["recordNumber"] += 1
-                #I use num+2 becuase the first and 2d columns in the input file are a genome identifier and genome_accession,
-                #while elements of INPUT_FILE_TO_DATA[fileToProcess] look like: "total", "F1, F2", etc
-                #Therefore we add 2 to shift by two positions from the beginning of the line and land on the 3rd column. Look at the input file format in USAGE
-                for idx, system in enumerate(taxlevel_to_data[taxlevel]):
-                    taxlevel_to_data[taxlevel][system] += float(line[idx+2])
+                if not mcp:
+                    protein_type = line[2]
+                    taxlevel_to_data[taxlevel][protein_type]["recordNumber"] += 1
+                    # I use idx+shift becasue the first 2 or 3 columns in the input file are extar conpared to the CHEM_TEMPLATE_TO_COUNTS fields.
+                    # Particularly, in the input file of chemo systems (CHEM_FILE) there are three additional fields: genome identifier, genome_accession, and potein type
+                    # while in the input file of MCP chemoreceptors (MCP_FIKE) there are two additional fields: genome identifier and genome_accession
+                    # while elements of CHEM_TEMPLATE_TO_COUNTS look like: "protein_type", "total", "F1, F2", etc for chemo systems, or "total", "64H", etc. for mcp chemoreceptors 
+                    # Therefore we add 'shift' value to shift to correspinding positions from the beginning of the line and land on the next column. Look at the input file format in USAGE
+                    shift = 2 if mcp else 3
+                    for idx, component in enumerate(taxlevel_to_data[taxlevel][protein_type]):
+                        print (line)
+                        print (idx+shift)
+                        print (component)
+                        if component != "recordNumber": 
+                            taxlevel_to_data[taxlevel][protein_type][component] += float(line[idx+shift])
+                else:
+                    taxlevel_to_data[taxlevel]["mcp"]["recordNumber"] += 1
+                    # I use idx+shift becasue the first 2 or 3 columns in the input file are extar conpared to the CHEM_TEMPLATE_TO_COUNTS fields.
+                    # Particularly, in the input file of chemo systems (CHEM_FILE) there are three additional fields: genome identifier, genome_accession, and potein type
+                    # while in the input file of MCP chemoreceptors (MCP_FIKE) there are two additional fields: genome identifier and genome_accession
+                    # while elements of CHEM_TEMPLATE_TO_COUNTS look like: "protein_type", "total", "F1, F2", etc for chemo systems, or "total", "64H", etc. for mcp chemoreceptors 
+                    # Therefore we add 'shift' value to shift to correspinding positions from the beginning of the line and land on the next column. Look at the input file format in USAGE
+                    shift = 2 if mcp else 3
+                    for idx, component in enumerate(taxlevel_to_data[taxlevel]["mcp"]):
+                        print (line)
+                        print (idx+shift)
+                        print (component)
+                        if component != "recordNumber": 
+                            taxlevel_to_data[taxlevel]["mcp"][component] += float(line[idx+shift])              
 
     return taxlevel_to_data
 
-def finalizeDataAndSave(taxlevel_to_data, inputFile, data, protein_type):
+def finalizeDataAndSave(taxlevel_to_data, inputFile, data, mcp=False):
+    protein_type_header = "protein_type" if not mcp else ""
     with open (inputFile.split(".")[0]+"_"+TAXLEVEL, "a") as output_file:
          # converting to list and write all the headers except for the last one, which is 'record_number'
-        output_file.write(ADDITIONAL_HEADERS + "\t" + "\t".join(list(data.keys())[:-1]) + "\n")
+        output_file.write(ADDITIONAL_HEADERS + "\t" + protein_type_header + "\t" + "\t".join(list(CHEM_TEMPLATE_TO_COUNTS.keys())[:-1]) + "\n")
 
         for taxlevel, data in taxlevel_to_data.items():
-            for param in data:
-                data[param] = data[param]/data["recordNumber"]
-            dataValues = map(roundToFirstDecim, data.values())
-            # Here converting the resulting map obejct to lost and writing all the values except for the last one (the number of records)
-            output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL, protein_type])  + "\t" + "\t".join(list(map(str, dataValues))[:-1]) + "\n")
+            for protein_type, chem_mcp_info_data in data.items():
+                for component in chem_mcp_info_data:
+                    chem_mcp_info_data[component] = chem_mcp_info_data[component]/chem_mcp_info_data["recordNumber"]
+                output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL, protein_type if not mcp else ""])  + "\t" + "\t".join(list(map(str, chem_mcp_info_data.values()))[:-1]) + "\n")
 
 def roundToFirstDecim(value):
     return round(value, 1)
 	
 def main(argv):
     initialize(argv)
-    for inputFile, data in INPUT_FILE_TO_DATA.items():
-        print ("taxLevel" + "\t" + "\t".join(data.keys()))
-        taxlevel_to_data = processSTstatistics(inputFile, data)
-        finalizeDataAndSave(taxlevel_to_data, inputFile, data, INPUT_FILE_TO_PROTEIN_TYPE[inputFile])
+    # Process chemotaxis components
+    taxlevel_to_data = processSTstatistics(CHEM_FILE, CHEM_COMPONENT_TO_DATASTRUCTURE, False)
+    finalizeDataAndSave(taxlevel_to_data, CHEM_FILE, CHEM_COMPONENT_TO_DATASTRUCTURE, False)
+    
+    # Process MCP chemoreceptors
+    taxlevel_to_data = processSTstatistics(MCP_FILE, MCP_COMPONENT_TO_DATASTRUCTURE, True)
+    finalizeDataAndSave(taxlevel_to_data, MCP_FILE, MCP_COMPONENT_TO_DATASTRUCTURE, True)
+
+        
 
 main(sys.argv)

@@ -55,9 +55,9 @@ CHEMOTHER_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
 CHED_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
 CHEZ_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
 CHEV_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
-
 CHEB_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
 CHER_TO_COUNTS = CHEM_TEMPLATE_TO_COUNTS.copy()
+
 MCP_TO_COUNTS = OrderedDict([("$total", 0), ("64H", 0), ("58H", 0), ("52H", 0), ("48H", 0), ("44H", 0), ("42H", 0), ("40H", 0), ("38H", 0), ("36H", 0), ("34H", 0), ("28H", 0), ("24H", 0), \
 								("total_norm_by_protein_count", 0), ("64H_norm_by_protein_count", 0), ("58H_norm_by_protein_count", 0), ("52H_norm_by_protein_count", 0), \
 								("48H_norm_by_protein_count", 0), ("44H_norm_by_protein_count", 0), ("42H_norm_by_protein_count", 0), ("40H_norm_by_protein_count", 0), \

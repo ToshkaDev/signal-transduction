@@ -75,30 +75,12 @@ Most ubiquitious MCP class
 
 
 
-
-
-./process_MiST_ST_classification.py -> get_and_classify.py
-
-
 ./get_and_classify.py -i ../test/testids.txt -s ../../input/MiST_domains_18.tsv -t classifySignalGenesAcrossCompons -o out1.txt -p out2.txt -b mist -g ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
 ./get_counts.py -i ../test/testids.txt -o st_counts -c chem_counts -m mcp_counts -b mist -s ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv
 
-./calculate_statistics.py -i st_counts -o st_counts_sum -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv -t phylum
-./calculate_statistics.py -i st_counts -o st_counts_sum -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv -t class
-./calculate_statistics_chemo.py -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv  -a get_counts_CheA_across_genomes.txt -b get_counts_CheB_across_genomes.txt -r get_counts_CheR_across_genomes.txt -z get_counts_CheZ_across_genomes.txt -d get_counts_CheD_across_genomes.txt -v get_counts_CheV_across_genomes.txt -m get_counts_MCP_across_genomes.txt -t phylum
-
-./calculate_statistics_chemo.py -s ../../input//gtdb_metadata/ar_bac_metadata_r214_p.tsv -c chem_counts -m mcp_counts -t phylum
-
-
-A_FILE = "get_counts_CheA_across_genomes.txt"
-B_FILE = "get_counts_CheB_across_genomes.txt"
-R_FILE = "get_counts_CheR_across_genomes.txt"
-Z_FILE = "get_counts_CheZ_across_genomes.txt"
-D_FILE = "get_counts_CheD_across_genomes.txt"
-V_FILE = "get_counts_CheV_across_genomes.txt"
-MCP_FILE = "get_counts_MCP_across_genomes.txt"
-
+./calculate_statistics.py -i st_counts -o st_counts_sum -s ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv -t phylum
+./calculate_statistics_chemo.py -s ../../input/gtdb_metadata/ar_bac_metadata_r214_p.tsv -c chem_counts -m mcp_counts -t phylum
 
 
 

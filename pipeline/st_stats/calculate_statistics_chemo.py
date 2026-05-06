@@ -103,32 +103,21 @@ def processSTstatistics(fileToProcess, componen_to_datastructure, mcp=False):
                     taxlevel_to_data[taxlevel] = componen_to_datastructure.copy()
 
                 if not mcp:
-                    protein_type = line[2]
+                    protein_type = line[1]
                     taxlevel_to_data[taxlevel][protein_type]["recordNumber"] += 1
-                    # I use idx+shift becasue the first 2 or 3 columns in the input file are extar conpared to the CHEM_TEMPLATE_TO_COUNTS fields.
-                    # Particularly, in the input file of chemo systems (CHEM_FILE) there are three additional fields: genome identifier, genome_accession, and potein type
-                    # while in the input file of MCP chemoreceptors (MCP_FIKE) there are two additional fields: genome identifier and genome_accession
-                    # while elements of CHEM_TEMPLATE_TO_COUNTS look like: "protein_type", "total", "F1, F2", etc for chemo systems, or "total", "64H", etc. for mcp chemoreceptors 
+                    # I use idx+shift becasue the first 1 or 2 columns in the input file are extra conpared to the CHEM_TEMPLATE_TO_COUNTS & MCP_TO_COUNTS fields.
+                    # Particularly, in the input file of chemo systems (CHEM_FILE) there are two additional fields: genome identifier, and potein type
+                    # while in the input file of MCP chemoreceptors (MCP_FIKE) there is one additional field: genome identifier
+                    # while elements of CHEM_TEMPLATE_TO_COUNTS/MCP_TO_COUNTS look like: "protein_type", "total", "F1, F2", etc for chemo systems, or "total", "64H", etc. for mcp chemoreceptors 
                     # Therefore we add 'shift' value to shift to correspinding positions from the beginning of the line and land on the next column. Look at the input file format in USAGE
-                    shift = 2 if mcp else 3
+                    shift = 2
                     for idx, component in enumerate(taxlevel_to_data[taxlevel][protein_type]):
-                        print (line)
-                        print (idx+shift)
-                        print (component)
                         if component != "recordNumber": 
                             taxlevel_to_data[taxlevel][protein_type][component] += float(line[idx+shift])
                 else:
                     taxlevel_to_data[taxlevel]["mcp"]["recordNumber"] += 1
-                    # I use idx+shift becasue the first 2 or 3 columns in the input file are extar conpared to the CHEM_TEMPLATE_TO_COUNTS fields.
-                    # Particularly, in the input file of chemo systems (CHEM_FILE) there are three additional fields: genome identifier, genome_accession, and potein type
-                    # while in the input file of MCP chemoreceptors (MCP_FIKE) there are two additional fields: genome identifier and genome_accession
-                    # while elements of CHEM_TEMPLATE_TO_COUNTS look like: "protein_type", "total", "F1, F2", etc for chemo systems, or "total", "64H", etc. for mcp chemoreceptors 
-                    # Therefore we add 'shift' value to shift to correspinding positions from the beginning of the line and land on the next column. Look at the input file format in USAGE
-                    shift = 2 if mcp else 3
+                    shift = 1
                     for idx, component in enumerate(taxlevel_to_data[taxlevel]["mcp"]):
-                        print (line)
-                        print (idx+shift)
-                        print (component)
                         if component != "recordNumber": 
                             taxlevel_to_data[taxlevel]["mcp"][component] += float(line[idx+shift])              
 
@@ -146,9 +135,6 @@ def finalizeDataAndSave(taxlevel_to_data, inputFile, data, mcp=False):
                     chem_mcp_info_data[component] = chem_mcp_info_data[component]/chem_mcp_info_data["recordNumber"]
                 output_file.write("\t".join([taxlevel, taxlevel.split(";")[-1], TAXLEVEL, protein_type if not mcp else ""])  + "\t" + "\t".join(list(map(str, chem_mcp_info_data.values()))[:-1]) + "\n")
 
-def roundToFirstDecim(value):
-    return round(value, 1)
-	
 def main(argv):
     initialize(argv)
     # Process chemotaxis components

@@ -111,11 +111,11 @@ def saveHeaders():
 	# Save headers
 	## Major ST systems
 	with open(OUTPUT_FILE_MST, 'w') as ofile:
-		ofile.write("genome\tgenome_accession\t" + "\t".join(list(MAJOR_ST_TO_COUNTS.keys())) + "\n")
+		ofile.write("genome\t" + "\t".join(list(MAJOR_ST_TO_COUNTS.keys())) + "\n")
 	## Chemotaxis systems
 	with open(OUTPUT_FILE_CHEM, 'w') as cfile, open(OUTPUT_FILE_MCP, 'w') as mfile:
-		cfile.write("genome\tgenome_accession\t" + "\t".join(list(CHEM_TEMPLATE_TO_COUNTS.keys())).replace("$", "") + "\n")
-		mfile.write("genome\tgenome_accession\t" + "\t".join(list(MCP_TO_COUNTS.keys())).replace("$", "") + "\n")
+		cfile.write("genome\t" + "\t".join(list(CHEM_TEMPLATE_TO_COUNTS.keys())).replace("$", "") + "\n")
+		mfile.write("genome\t" + "\t".join(list(MCP_TO_COUNTS.keys())).replace("$", "") + "\n")
 
 def collectSignalGenesCounts():
 	recordCounter = 0
@@ -209,7 +209,7 @@ def normalize_major_st_by_protein_counts(genomeVersion):
 
 def  saveToFile(dataDict, outputFile, genomeVersion):
 	with open(outputFile, 'a') as output_file:
-		output_file.write(genomeVersion + "\t" + genomeVersion.split(".")[0] +  "\t" + "\t".join(map(str, (dataDict.values()))) + "\n")
+		output_file.write(genomeVersion + "\t" + "\t".join(map(str, (dataDict.values()))) + "\n")
 
 def resetDataStructure(dataStrcture):
 	for key in dataStrcture:

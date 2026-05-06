@@ -103,24 +103,24 @@ def processSTstatistics():
                 TAXONOMY_LEVEL_TO_DATA[taxlevel]["record_number"] += 1
                 # Using helper tuple to avoid repeating code for each system.
                 for idx, system in enumerate(HELPER_TUPLE):
-                    # +2 because the first two columns in the input file are genome_version and genome_accession, so the data starts from index 2
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel][system] += float(line[idx+2])
+                    # +1 because the first two columns in the input file are genome_version and genome_accession, so the data starts from index 1
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel][system] += float(line[idx+1])
                 
                 # Compute combinations of systems and ratios
-                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total"] += (float(line[5]) + float(line[6]))
-                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"] += (float(line[7]) + float(line[8]))
-                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total_norm_by_avg_protein_count"] += (float(line[16]) + float(line[17]))
-                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total_norm_by_avg_protein_count"] += (float(line[18]) + float(line[19]))
+                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total"] += (float(line[4]) + float(line[5]))
+                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"] += (float(line[6]) + float(line[7]))
+                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total_norm_by_avg_protein_count"] += (float(line[15]) + float(line[16]))
+                TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total_norm_by_avg_protein_count"] += (float(line[17]) + float(line[18]))
 
                 if float(line[3]):
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_total_by_ocp_total"] += float(line[4])/float(line[3])
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_total_by_ocp_total_norm_by_avg_protein_count"] += float(line[15])/float(line[14])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_total_by_ocp_total"] += float(line[3])/float(line[2])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_total_by_ocp_total_norm_by_avg_protein_count"] += float(line[14])/float(line[13])
                 if float(line[7]):
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_by_tcp_rr"] += float(line[5])/float(line[7])
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_by_tcp_rr_norm_by_avg_protein_count"] += float(line[16])/float(line[18])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_by_tcp_rr"] += float(line[4])/float(line[6])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_by_tcp_rr_norm_by_avg_protein_count"] += float(line[15])/float(line[17])
                 if float(line[8]):
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hhk_by_tcp_hrr"] += float(line[6])/float(line[8])
-                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hhk_by_tcp_hrr_norm_by_avg_protein_count"] += float(line[17])/float(line[19])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hhk_by_tcp_hrr"] += float(line[5])/float(line[7])
+                    TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hhk_by_tcp_hrr_norm_by_avg_protein_count"] += float(line[16])/float(line[18])
                 if float(TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"]):
                     TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total_by_tcp_rr_total"] += TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total"]/float(TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total"])
                     TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total_by_tcp_rr_total_norm_by_avg_protein_count"] += TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_hk_total_norm_by_avg_protein_count"]/float(TAXONOMY_LEVEL_TO_DATA[taxlevel]["tcp_rr_total_norm_by_avg_protein_count"])
